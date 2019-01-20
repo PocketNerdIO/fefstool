@@ -22,10 +22,10 @@ int main(int argc, char *argv[]) {
 
 
     if (argv[1] == NULL) {
-        printf("%s: Argument not found.\n", argv[0]);
+        printf("%s: missing argument\n", argv[0]);
         exit(EXIT_FAILURE);
     } else if(argv[2] != NULL) {
-        printf("%s: Too many arguments.\n", argv[0]);
+        printf("%s: too many arguments\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
