@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
     memcpy(img_name, buffer + IMAGE_STARTOF_NAME, 11);
     img_name[11] = 0x0;
     printf("Image name: %s\n", img_name);
-    printf("Length: %f\n", file_len);
+    printf("Length: %d\n", file_len);
 
     // Fetch ROM Size
     memcpy(&img_flashcount, buffer + IMAGE_STARTOF_FLASHCOUNT, 4);
