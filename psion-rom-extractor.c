@@ -5,10 +5,69 @@
 
 #define FLASH_TYPE    0xf1a5
 #define IMAGE_IS_ROM  0xffffffff
-#define IMAGE_STARTOF_ROOTPOINTER 11
-#define IMAGE_STARTOF_NAME        14
-#define IMAGE_STARTOF_FLASHCOUNT  25
 
+#define IMAGE_STARTOF_ROOTPTR    11
+#define IMAGE_STARTOF_NAME       14
+#define IMAGE_STARTOF_FLASHCOUNT 25
+
+#define IMAGE_OFFSET_NEXTNODE         0
+#define IMAGE_OFFSET_NAME             3
+#define IMAGE_OFFSET_EXT              11
+#define IMAGE_OFFSET_FLAGS            14
+#define IMAGE_OFFSET_FIRSTENTRYRECORD 15
+#define IMAGE_OFFSET_ALTRECORD        18
+#define IMAGE_OFFSET_ENTRYPROPERTIES  21
+#define IMAGE_OFFSET_TIME             22
+#define IMAGE_OFFSET_DATE             24
+#define IMAGE_OFFSET_FIRSTDATARECORD  26
+#define IMAGE_OFFSET_FIRSTDATALEN     29
+
+#define NODE_FLAG_ENTRYVALID              1
+#define NODE_FLAG_PROPERTIESDATETIMEVALID 2
+#define NODE_FLAG_ISFILE                  4
+#define NODE_FLAG_NOENTRYRECORD           8
+#define NODE_FLAG_NOALTRECORD             16
+#define NODE_FLAG_LASTENTRY               32
+#define NODE_FLAG_BIT6                    64
+#define NODE_FLAG_BIT7                    128
+
+#define NODE_PROPERTY_ISREADONLY   1
+#define NODE_PROPERTY_ISHIDDEN     2
+#define NODE_PROPERTY_SYSTEM       4
+#define NODE_PROPERTY_ISVOLUMENAME 8
+#define NODE_PROPERTY_ISDIRECTORY  16
+#define NODE_PROPERTY_ISMODIFIED   32
+
+
+void walkpath(int pos, char path[], char *buffer[]) {
+    char node_name[9], node_ext[4];
+    int node_flags;
+
+    printf("Dir starts at: %p\n", (pos + 3));
+    memcpy(node_name, *buffer + (pos + IMAGE_OFFSET_NAME), 8);
+    node_name[8] = '\0';
+    memcpy(node_ext, *buffer + (pos + IMAGE_OFFSET_EXT), 3);
+    node_ext[3] = '\0';
+    printf("\n=================\n");
+    printf("DIR: %s", node_name);
+    if(strncmp(node_ext, "   ", 3) != 0) {
+        printf(".%s", node_ext);
+    }
+    printf("\n");
+    memcpy(&node_flags, *buffer + (pos + IMAGE_OFFSET_FLAGS), 1);
+    printf("Flags: %p\n", node_flags);
+    if (node_flags & 4) {
+        printf("Is a file.\n");
+    } else {
+        printf("Is a diretory.\n");
+    }
+    if (node_flags & 8) {
+        printf("Entry record!\n");
+    } else {
+        printf("No entry record!\n");
+    }
+
+}
 
 int main(int argc, char *argv[]) {
     FILE *fp;
@@ -61,8 +120,10 @@ int main(int argc, char *argv[]) {
         printf("Flashed %d times.\n", img_flashcount);
     }
 
-    memcpy(&img_rootstart, buffer + IMAGE_STARTOF_ROOTPOINTER, 3);
-    printf("Root directory starts at: 0x%X\n", img_rootstart);
+    memcpy(&img_rootstart, buffer + IMAGE_STARTOF_ROOTPTR, 3);
+    printf("Root directory starts at: %p\n", img_rootstart);
+
+    walkpath(img_rootstart, "", &buffer);
 
     free(buffer);
     return(0);
