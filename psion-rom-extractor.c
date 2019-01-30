@@ -22,14 +22,14 @@
 #define IMAGE_OFFSET_FIRSTDATARECORD  26
 #define IMAGE_OFFSET_FIRSTDATALEN     29
 
-#define NODE_FLAG_ENTRYVALID              1
-#define NODE_FLAG_PROPERTIESDATETIMEVALID 2
-#define NODE_FLAG_ISFILE                  4
-#define NODE_FLAG_NOENTRYRECORD           8
-#define NODE_FLAG_NOALTRECORD             16
-#define NODE_FLAG_LASTENTRY               32
-#define NODE_FLAG_BIT6                    64
-#define NODE_FLAG_BIT7                    128
+#define NODE_FLAG_ENTRYISVALID              1
+#define NODE_FLAG_PROPERTIESDATETIMEISVALID 2
+#define NODE_FLAG_ISFILE                    4
+#define NODE_FLAG_NOENTRYRECORD             8
+#define NODE_FLAG_NOALTRECORD               16
+#define NODE_FLAG_ISLASTENTRY               32
+#define NODE_FLAG_BIT6                      64
+#define NODE_FLAG_BIT7                      128
 
 #define NODE_PROPERTY_ISREADONLY   1
 #define NODE_PROPERTY_ISHIDDEN     2
@@ -56,17 +56,31 @@ void walkpath(int pos, char path[], char *buffer[]) {
     printf("\n");
     memcpy(&node_flags, *buffer + (pos + IMAGE_OFFSET_FLAGS), 1);
     printf("Flags: %p\n", node_flags);
-    if (node_flags & 4) {
+    if (node_flags & NODE_FLAG_ENTRYISVALID) {
+        printf("Valid node.\n");
+    } else {
+        printf("Not a valid node!\n");
+    }
+    if (node_flags & NODE_FLAG_ISFILE) {
         printf("Is a file.\n");
     } else {
         printf("Is a diretory.\n");
     }
-    if (node_flags & 8) {
-        printf("Entry record!\n");
+    if (node_flags & NODE_FLAG_NOENTRYRECORD) {
+        printf("No entry record.\n");
     } else {
-        printf("No entry record!\n");
+        printf("Entry record.\n");
     }
-
+    if (node_flags & NODE_FLAG_NOALTRECORD) {
+        printf("No alternative record.\n");
+    } else {
+        printf("Alternative record.\n");
+    }
+    if (node_flags & NODE_FLAG_ISLASTENTRY) {
+        printf("This is the last entry in the current directory.\n");
+    } else {
+        printf("Not the last entry in the current directory.\n");
+    }
 }
 
 int main(int argc, char *argv[]) {
