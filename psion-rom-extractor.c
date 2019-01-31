@@ -11,16 +11,27 @@
 #define IMAGE_STARTOF_FLASHCOUNT 25
 
 #define IMAGE_OFFSET_NEXTNODE         0
+#define IMAGE_LENGTH_NEXTNODE         3
 #define IMAGE_OFFSET_NAME             3
+#define IMAGE_LENGTH_NAME             8
 #define IMAGE_OFFSET_EXT              11
+#define IMAGE_LENGTH_EXT              3
 #define IMAGE_OFFSET_FLAGS            14
+#define IMAGE_LENGTH_FLAGS            1
 #define IMAGE_OFFSET_FIRSTENTRYRECORD 15
+#define IMAGE_LENGTH_FIRSTENTRYRECORD 3
 #define IMAGE_OFFSET_ALTRECORD        18
+#define IMAGE_LENGTH_ALTRECORD        3
 #define IMAGE_OFFSET_ENTRYPROPERTIES  21
+#define IMAGE_LENGTH_ENTRYPROPERTIES  1
 #define IMAGE_OFFSET_TIME             22
+#define IMAGE_LENGTH_TIME             2
 #define IMAGE_OFFSET_DATE             24
+#define IMAGE_LENGTH_DATE             2
 #define IMAGE_OFFSET_FIRSTDATARECORD  26
+#define IMAGE_LENGTH_FIRSTDATARECORD  3
 #define IMAGE_OFFSET_FIRSTDATALEN     29
+#define IMAGE_LENGTH_FIRSTDATALEN     2
 
 #define NODE_FLAG_ENTRYISVALID              1
 #define NODE_FLAG_PROPERTIESDATETIMEISVALID 2
@@ -39,9 +50,33 @@
 #define NODE_PROPERTY_ISMODIFIED   32
 
 
+void datecode(int date, int *year, int *month, int *day) {
+    *day = date % 0x20;
+    *month = (date >> 5) % 0x10;
+    *year = (date >> 9) + 1980;
+}
+
+void timecode(int time, int *hour, int *min, int *sec) {
+    *sec = (time % 0x20) * 2;
+    *min = (time >> 5) % 0x40;
+    *hour = (time >> 11);
+}
+
+    // int _checksum;
+    // printf("Date (%x): %4d-%2d-%2d\n", date, *year, *month, *day);
+    // _checksum = 0x200 * (*year - 1980) + (0x20 * *month) + *day;
+    // printf("CHECKSUM: %x\n", _checksum);
+
+    // int _checksum;
+    // printf("Time (%x): %2d:%2d:%2d\n", time, *hour, *min, *sec);
+    // _checksum = (0x800 * *hour) + (0x20 * *min) + (*sec / 2);
+    // printf("CHECKSUM: %x\n", _checksum);
+
 void walkpath(int pos, char path[], char *buffer[]) {
     char node_name[9], node_ext[4];
     int node_flags;
+    int date = 0, day = 0, month = 0, year = 0;
+    int time = 0, hour = 0, min = 0, sec = 0;
 
     printf("Dir starts at: %p\n", (pos + 3));
     memcpy(node_name, *buffer + (pos + IMAGE_OFFSET_NAME), 8);
@@ -81,6 +116,14 @@ void walkpath(int pos, char path[], char *buffer[]) {
     } else {
         printf("Not the last entry in the current directory.\n");
     }
+
+    memcpy(&date, *buffer + (pos + IMAGE_OFFSET_DATE), 2);
+    datecode(date, &year, &month, &day);
+    printf("Date (%x): %4d-%2d-%2d\n", date, year, month, day);
+
+    memcpy(&time, *buffer + (pos + IMAGE_OFFSET_TIME), 2);
+    timecode(time, &hour, &min, &sec);
+    printf("Time (%x): %2d:%2d:%2d\n", time, hour, min, sec);    
 }
 
 int main(int argc, char *argv[]) {
