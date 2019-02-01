@@ -62,16 +62,6 @@ void timecode(int time, int *hour, int *min, int *sec) {
     *hour = (time >> 11);
 }
 
-    // int _checksum;
-    // printf("Date (%x): %4d-%2d-%2d\n", date, *year, *month, *day);
-    // _checksum = 0x200 * (*year - 1980) + (0x20 * *month) + *day;
-    // printf("CHECKSUM: %x\n", _checksum);
-
-    // int _checksum;
-    // printf("Time (%x): %2d:%2d:%2d\n", time, *hour, *min, *sec);
-    // _checksum = (0x800 * *hour) + (0x20 * *min) + (*sec / 2);
-    // printf("CHECKSUM: %x\n", _checksum);
-
 void walkpath(int pos, char path[], char *buffer[]) {
     char node_name[9], node_ext[4];
     int node_flags;
@@ -79,17 +69,17 @@ void walkpath(int pos, char path[], char *buffer[]) {
     int time = 0, hour = 0, min = 0, sec = 0;
 
     printf("Dir starts at: %p\n", (pos + 3));
-    memcpy(node_name, *buffer + (pos + IMAGE_OFFSET_NAME), 8);
+    memcpy(node_name, *buffer + (pos + IMAGE_OFFSET_NAME), IMAGE_LENGTH_NAME);
     node_name[8] = '\0';
-    memcpy(node_ext, *buffer + (pos + IMAGE_OFFSET_EXT), 3);
+    memcpy(node_ext, *buffer + (pos + IMAGE_OFFSET_EXT), IMAGE_LENGTH_EXT);
     node_ext[3] = '\0';
     printf("\n=================\n");
     printf("DIR: %s", node_name);
-    if(strncmp(node_ext, "   ", 3) != 0) {
+    if (strncmp(node_ext, "   ", 3) != 0) {
         printf(".%s", node_ext);
     }
     printf("\n");
-    memcpy(&node_flags, *buffer + (pos + IMAGE_OFFSET_FLAGS), 1);
+    memcpy(&node_flags, *buffer + (pos + IMAGE_OFFSET_FLAGS), IMAGE_LENGTH_FLAGS);
     printf("Flags: %p\n", node_flags);
     if (node_flags & NODE_FLAG_ENTRYISVALID) {
         printf("Valid node.\n");
@@ -117,11 +107,11 @@ void walkpath(int pos, char path[], char *buffer[]) {
         printf("Not the last entry in the current directory.\n");
     }
 
-    memcpy(&date, *buffer + (pos + IMAGE_OFFSET_DATE), 2);
+    memcpy(&date, *buffer + (pos + IMAGE_OFFSET_DATE), IMAGE_LENGTH_DATE);
     datecode(date, &year, &month, &day);
     printf("Date (%x): %4d-%2d-%2d\n", date, year, month, day);
 
-    memcpy(&time, *buffer + (pos + IMAGE_OFFSET_TIME), 2);
+    memcpy(&time, *buffer + (pos + IMAGE_OFFSET_TIME), IMAGE_LENGTH_TIME);
     timecode(time, &hour, &min, &sec);
     printf("Time (%x): %2d:%2d:%2d\n", time, hour, min, sec);    
 }
@@ -140,7 +130,7 @@ int main(int argc, char *argv[]) {
     if (argv[1] == NULL) {
         printf("%s: missing argument\n", argv[0]);
         exit(EXIT_FAILURE);
-    } else if(argv[2] != NULL) {
+    } else if (argv[2] != NULL) {
         printf("%s: too many arguments\n", argv[0]);
         exit(EXIT_FAILURE);
     }
@@ -149,7 +139,7 @@ int main(int argc, char *argv[]) {
 
     fread(&img_type, 2, 1, fp);
 
-    if(img_type != FLASH_TYPE) {
+    if (img_type != FLASH_TYPE) {
         printf("%s: %s: Not a Psion Flash or ROM SSD image.\n", argv[0], argv[1]);
         fclose(fp);
         exit(EXIT_FAILURE); 
@@ -171,7 +161,7 @@ int main(int argc, char *argv[]) {
 
     // Fetch ROM Size
     memcpy(&img_flashcount, buffer + IMAGE_STARTOF_FLASHCOUNT, 4);
-    if(img_flashcount == IMAGE_IS_ROM) {
+    if (img_flashcount == IMAGE_IS_ROM) {
         printf("ROM image.\n");
     } else {
         printf("Flashed %d times.\n", img_flashcount);
