@@ -68,45 +68,45 @@ void timecode(int time, int *hour, int *min, int *sec) {
 }
 
 void walkpath(int pos, char path[], char *buffer[]) {
-    char ENTRY_name[9], ENTRY_ext[4];
-    int ENTRY_flags;
+    char entry_name[9], entry_ext[4];
+    int entry_flags;
     int date = 0, day = 0, month = 0, year = 0;
     int time = 0, hour = 0, min = 0, sec = 0;
 
     printf("Dir starts at: %p\n", (pos + 3));
-    memcpy(ENTRY_name, *buffer + (pos + ENTRY_NAME_OFFSET), ENTRY_NAME_LENGTH);
-    ENTRY_name[8] = '\0';
-    memcpy(ENTRY_ext, *buffer + (pos + ENTRY_EXT_OFFSET), ENTRY_EXT_LENGTH);
-    ENTRY_ext[3] = '\0';
+    memcpy(entry_name, *buffer + (pos + ENTRY_NAME_OFFSET), ENTRY_NAME_LENGTH);
+    entry_name[8] = '\0';
+    memcpy(entry_ext, *buffer + (pos + ENTRY_EXT_OFFSET), ENTRY_EXT_LENGTH);
+    entry_ext[3] = '\0';
     printf("\n=================\n");
-    printf("DIR: %s", ENTRY_name);
-    if (strncmp(ENTRY_ext, "   ", 3) != 0) {
-        printf(".%s", ENTRY_ext);
+    printf("DIR: %s", entry_name);
+    if (strncmp(entry_ext, "   ", 3) != 0) {
+        printf(".%s", entry_ext);
     }
     printf("\n");
-    memcpy(&ENTRY_flags, *buffer + (pos + ENTRY_FLAGS_OFFSET), ENTRY_FLAGS_LENGTH);
-    printf("Flags: %p\n", ENTRY_flags);
-    if (ENTRY_flags & ENTRY_FLAG_ENTRYISVALID) {
+    memcpy(&entry_flags, *buffer + (pos + ENTRY_FLAGS_OFFSET), ENTRY_FLAGS_LENGTH);
+    printf("Flags: %p\n", entry_flags);
+    if (entry_flags & ENTRY_FLAG_ENTRYISVALID) {
         printf("Valid entry.\n");
     } else {
         printf("Not a valid entry!\n");
     }
-    if (ENTRY_flags & ENTRY_FLAG_ISFILE) {
+    if (entry_flags & ENTRY_FLAG_ISFILE) {
         printf("Is a file.\n");
     } else {
         printf("Is a diretory.\n");
     }
-    if (ENTRY_flags & ENTRY_FLAG_NOENTRYRECORD) {
+    if (entry_flags & ENTRY_FLAG_NOENTRYRECORD) {
         printf("No entry record.\n");
     } else {
         printf("Entry record.\n");
     }
-    if (ENTRY_flags & ENTRY_FLAG_NOALTRECORD) {
+    if (entry_flags & ENTRY_FLAG_NOALTRECORD) {
         printf("No alternative record.\n");
     } else {
         printf("Alternative record.\n");
     }
-    if (ENTRY_flags & ENTRY_FLAG_ISLASTENTRY) {
+    if (entry_flags & ENTRY_FLAG_ISLASTENTRY) {
         printf("This is the last entry in the current directory.\n");
     } else {
         printf("Not the last entry in the current directory.\n");
