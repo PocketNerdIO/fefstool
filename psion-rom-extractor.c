@@ -6,32 +6,35 @@
 #define FLASH_TYPE    0xf1a5
 #define IMAGE_IS_ROM  0xffffffff
 
-#define IMAGE_STARTOF_ROOTPTR    11
-#define IMAGE_STARTOF_NAME       14
-#define IMAGE_STARTOF_FLASHCOUNT 25
+#define IMAGE_ROOTPTR_OFFSET    11
+#define IMAGE_ROOTPTR_LENGTH    3
+#define IMAGE_NAME_OFFSET       14
+#define IMAGE_NAME_LENGTH       11
+#define IMAGE_FLASHCOUNT_OFFSET 25
+#define IMAGE_FLASHCOUNT_LENGTH 4
 
-#define IMAGE_OFFSET_NEXTNODE         0
-#define IMAGE_LENGTH_NEXTNODE         3
-#define IMAGE_OFFSET_NAME             3
-#define IMAGE_LENGTH_NAME             8
-#define IMAGE_OFFSET_EXT              11
-#define IMAGE_LENGTH_EXT              3
-#define IMAGE_OFFSET_FLAGS            14
-#define IMAGE_LENGTH_FLAGS            1
-#define IMAGE_OFFSET_FIRSTENTRYRECORD 15
-#define IMAGE_LENGTH_FIRSTENTRYRECORD 3
-#define IMAGE_OFFSET_ALTRECORD        18
-#define IMAGE_LENGTH_ALTRECORD        3
-#define IMAGE_OFFSET_ENTRYPROPERTIES  21
-#define IMAGE_LENGTH_ENTRYPROPERTIES  1
-#define IMAGE_OFFSET_TIME             22
-#define IMAGE_LENGTH_TIME             2
-#define IMAGE_OFFSET_DATE             24
-#define IMAGE_LENGTH_DATE             2
-#define IMAGE_OFFSET_FIRSTDATARECORD  26
-#define IMAGE_LENGTH_FIRSTDATARECORD  3
-#define IMAGE_OFFSET_FIRSTDATALEN     29
-#define IMAGE_LENGTH_FIRSTDATALEN     2
+#define NODE_NEXTNODE_OFFSET         0
+#define NODE_NEXTNODE_LENGTH         3
+#define NODE_NAME_OFFSET             3
+#define NODE_NAME_LENGTH             8
+#define NODE_EXT_OFFSET              11
+#define NODE_EXT_LENGTH              3
+#define NODE_FLAGS_OFFSET            14
+#define NODE_FLAGS_LENGTH            1
+#define NODE_FIRSTENTRYRECORD_OFFSET 15
+#define NODE_FIRSTENTRYRECORD_LENGTH 3
+#define NODE_ALTRECORD_OFFSET        18
+#define NODE_ALTRECORD_LENGTH        3
+#define NODE_ENTRYPROPERTIES_OFFSET  21
+#define NODE_ENTRYPROPERTIES_LENGTH  1
+#define NODE_TIME_OFFSET             22
+#define NODE_TIME_LENGTH             2
+#define NODE_DATE_OFFSET             24
+#define NODE_DATE_LENGTH             2
+#define NODE_FIRSTDATARECORD_OFFSET  26
+#define NODE_FIRSTDATARECORD_LENGTH  3
+#define NODE_FIRSTDATALEN_OFFSET     29
+#define NODE_FIRSTDATALEN_LENGTH     2
 
 #define NODE_FLAG_ENTRYISVALID              1
 #define NODE_FLAG_PROPERTIESDATETIMEISVALID 2
@@ -69,9 +72,9 @@ void walkpath(int pos, char path[], char *buffer[]) {
     int time = 0, hour = 0, min = 0, sec = 0;
 
     printf("Dir starts at: %p\n", (pos + 3));
-    memcpy(node_name, *buffer + (pos + IMAGE_OFFSET_NAME), IMAGE_LENGTH_NAME);
+    memcpy(node_name, *buffer + (pos + NODE_NAME_OFFSET), NODE_NAME_LENGTH);
     node_name[8] = '\0';
-    memcpy(node_ext, *buffer + (pos + IMAGE_OFFSET_EXT), IMAGE_LENGTH_EXT);
+    memcpy(node_ext, *buffer + (pos + NODE_EXT_OFFSET), NODE_EXT_LENGTH);
     node_ext[3] = '\0';
     printf("\n=================\n");
     printf("DIR: %s", node_name);
@@ -79,7 +82,7 @@ void walkpath(int pos, char path[], char *buffer[]) {
         printf(".%s", node_ext);
     }
     printf("\n");
-    memcpy(&node_flags, *buffer + (pos + IMAGE_OFFSET_FLAGS), IMAGE_LENGTH_FLAGS);
+    memcpy(&node_flags, *buffer + (pos + NODE_FLAGS_OFFSET), NODE_FLAGS_LENGTH);
     printf("Flags: %p\n", node_flags);
     if (node_flags & NODE_FLAG_ENTRYISVALID) {
         printf("Valid node.\n");
@@ -107,11 +110,11 @@ void walkpath(int pos, char path[], char *buffer[]) {
         printf("Not the last entry in the current directory.\n");
     }
 
-    memcpy(&date, *buffer + (pos + IMAGE_OFFSET_DATE), IMAGE_LENGTH_DATE);
+    memcpy(&date, *buffer + (pos + NODE_DATE_OFFSET), NODE_DATE_LENGTH);
     datecode(date, &year, &month, &day);
     printf("Date (%x): %4d-%2d-%2d\n", date, year, month, day);
 
-    memcpy(&time, *buffer + (pos + IMAGE_OFFSET_TIME), IMAGE_LENGTH_TIME);
+    memcpy(&time, *buffer + (pos + NODE_TIME_OFFSET), NODE_TIME_LENGTH);
     timecode(time, &hour, &min, &sec);
     printf("Time (%x): %2d:%2d:%2d\n", time, hour, min, sec);    
 }
@@ -154,20 +157,20 @@ int main(int argc, char *argv[]) {
     fclose(fp);
     
     // Fetch ROM Name
-    memcpy(img_name, buffer + IMAGE_STARTOF_NAME, 11);
+    memcpy(img_name, buffer + IMAGE_NAME_OFFSET, IMAGE_NAME_LENGTH);
     img_name[11] = 0x0;
     printf("Image name: %s\n", img_name);
     printf("Length: %d\n", file_len);
 
     // Fetch ROM Size
-    memcpy(&img_flashcount, buffer + IMAGE_STARTOF_FLASHCOUNT, 4);
+    memcpy(&img_flashcount, buffer + IMAGE_FLASHCOUNT_OFFSET, IMAGE_FLASHCOUNT_LENGTH);
     if (img_flashcount == IMAGE_IS_ROM) {
         printf("ROM image.\n");
     } else {
         printf("Flashed %d times.\n", img_flashcount);
     }
 
-    memcpy(&img_rootstart, buffer + IMAGE_STARTOF_ROOTPTR, 3);
+    memcpy(&img_rootstart, buffer + IMAGE_ROOTPTR_OFFSET, IMAGE_ROOTPTR_LENGTH);
     printf("Root directory starts at: %p\n", img_rootstart);
 
     walkpath(img_rootstart, "", &buffer);
