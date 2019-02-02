@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdbool.h>
 
 #define FLASH_TYPE   0xf1a5
 #define IMAGE_ISROM  0xffffffff
@@ -67,58 +68,126 @@ void timecode(int time, int *hour, int *min, int *sec) {
     *hour = (time >> 11);
 }
 
+// size_t trimfilename(char *out, char *name, char *ext) {
+//     const char *name_end, *ext_end;
+    
+//     name_end = name + strlen(name) - 1;
+//     while (name_end > name && isspace((unsigned char)*name_end)) name_end--;
+//     ext_end = name + strlen(ext) - 1;
+//     while (name_end > name && isspace((unsigned char)*name_end)) name_end--;
+
+
+
+// }
+
 void walkpath(int pos, char path[], char *buffer[]) {
     char entry_name[9], entry_ext[4];
+    char newpath[128];
     int entry_flags;
     int date = 0, day = 0, month = 0, year = 0;
     int time = 0, hour = 0, min = 0, sec = 0;
+    int first_entry_ptr, next_entry_ptr;
+    bool is_last_entry, is_file;
+    char i;
 
-    printf("Dir starts at: %p\n", (pos + 3));
-    memcpy(entry_name, *buffer + (pos + ENTRY_NAME_OFFSET), ENTRY_NAME_LENGTH);
-    entry_name[8] = '\0';
-    memcpy(entry_ext, *buffer + (pos + ENTRY_EXT_OFFSET), ENTRY_EXT_LENGTH);
-    entry_ext[3] = '\0';
-    printf("\n=================\n");
-    printf("DIR: %s", entry_name);
-    if (strncmp(entry_ext, "   ", 3) != 0) {
-        printf(".%s", entry_ext);
-    }
-    printf("\n");
-    memcpy(&entry_flags, *buffer + (pos + ENTRY_FLAGS_OFFSET), ENTRY_FLAGS_LENGTH);
-    printf("Flags: %p\n", entry_flags);
-    if (entry_flags & ENTRY_FLAG_ENTRYISVALID) {
-        printf("Valid entry.\n");
-    } else {
-        printf("Not a valid entry!\n");
-    }
-    if (entry_flags & ENTRY_FLAG_ISFILE) {
-        printf("Is a file.\n");
-    } else {
-        printf("Is a diretory.\n");
-    }
-    if (entry_flags & ENTRY_FLAG_NOENTRYRECORD) {
-        printf("No entry record.\n");
-    } else {
-        printf("Entry record.\n");
-    }
-    if (entry_flags & ENTRY_FLAG_NOALTRECORD) {
-        printf("No alternative record.\n");
-    } else {
-        printf("Alternative record.\n");
-    }
-    if (entry_flags & ENTRY_FLAG_ISLASTENTRY) {
-        printf("This is the last entry in the current directory.\n");
-    } else {
-        printf("Not the last entry in the current directory.\n");
-    }
+    // printf("\nDir starts at: %p\n", (pos + 3));
 
-    memcpy(&date, *buffer + (pos + ENTRY_DATE_OFFSET), ENTRY_DATE_LENGTH);
-    datecode(date, &year, &month, &day);
-    printf("Date (%x): %4d-%2d-%2d\n", date, year, month, day);
+    // printf("%s\n", path);
+    // printf("=================\n");
 
-    memcpy(&time, *buffer + (pos + ENTRY_TIME_OFFSET), ENTRY_TIME_LENGTH);
-    timecode(time, &hour, &min, &sec);
-    printf("Time (%x): %2d:%2d:%2d\n", time, hour, min, sec);    
+//    for (i = 0; i < 5; i++) {
+    while (true) {
+        memcpy(&entry_flags, *buffer + (pos + ENTRY_FLAGS_OFFSET), ENTRY_FLAGS_LENGTH);
+        memcpy(entry_name, *buffer + (pos + ENTRY_NAME_OFFSET), ENTRY_NAME_LENGTH);
+        entry_name[8] = 0x0;
+        memcpy(entry_ext, *buffer + (pos + ENTRY_EXT_OFFSET), ENTRY_EXT_LENGTH);
+        entry_ext[3] = 0x0;
+
+        if (entry_flags & ENTRY_FLAG_ISFILE) {
+            is_file = true;
+        } else {
+            is_file = false;
+        }
+        if (entry_flags & ENTRY_FLAG_ISLASTENTRY) {
+            is_last_entry = true;
+        } else {
+            is_last_entry = false;
+        }
+        
+
+        if (entry_flags & ENTRY_FLAG_ENTRYISVALID) {
+
+
+            // if (is_file) {
+            //     printf("FILE");
+            // } else {
+            //     printf("DIR");
+            // }
+            printf("%s%s", path, entry_name);
+
+            if (strncmp(entry_ext, "   ", 3) != 0) {
+                printf(".%s", entry_ext);
+            }
+            if (!is_file) {
+                printf("/");
+            }
+            printf("\n");
+            // printf("Flags: %p\n", entry_flags);
+            memcpy(&date, *buffer + (pos + ENTRY_DATE_OFFSET), ENTRY_DATE_LENGTH);
+            datecode(date, &year, &month, &day);
+            memcpy(&time, *buffer + (pos + ENTRY_TIME_OFFSET), ENTRY_TIME_LENGTH);
+            timecode(time, &hour, &min, &sec);
+            printf("Datestamp: %04d-%02d-%02d %02d:%02d:%02d\n", year, month, day, hour, min, sec);
+
+            // if (entry_flags & ENTRY_FLAG_NOENTRYRECORD) {
+            //     printf("No entry record.\n");
+            // } else {
+            //     printf("Has an entry record.\n");
+            // }
+            if (entry_flags & ENTRY_FLAG_NOALTRECORD) {
+                printf("No alternative record.\n");
+            } else {
+                printf("Has an alternative record.\n");
+            }
+            // if (is_last_entry) {
+            //     printf("This is the last entry in the current directory.\n");
+            // } else {
+            //     printf("Not the last entry in the current directory.\n");
+            // }
+
+            memcpy(&first_entry_ptr, *buffer + (pos + ENTRY_FIRSTENTRYRECORD_OFFSET), ENTRY_FIRSTENTRYRECORD_LENGTH);
+            printf("First Entry Pointer: 0x%06x\n", first_entry_ptr);
+            if (!is_file) {
+                strcpy(newpath, path);
+                strcat(newpath, entry_name);
+                if (strncmp(entry_ext, "   ", 3) != 0) {
+                    strcat(newpath, ".");
+                    strcat(newpath, entry_ext);
+                }
+                strcat(newpath, "/\0");
+                printf("\n");
+                walkpath (first_entry_ptr, newpath, buffer);
+            }
+        } else {
+            printf("Invalid entry found, skipping ");
+            if (is_file) {
+                printf ("file");
+            } else {
+                printf("directory");
+            }
+            printf(": %s", entry_name);
+            if (strncmp(entry_ext, "   ", 3) != 0) {
+                printf(".%s", entry_ext);
+            }
+            printf("\n");
+        }
+        if (is_last_entry) {
+//            printf("<--\n");
+            return;
+        }
+        memcpy(&pos, *buffer + (pos + ENTRY_NEXTENTRY_OFFSET), ENTRY_NEXTENTRY_LENGTH);
+        printf("\n");
+    }
 }
 
 int main(int argc, char *argv[]) {
@@ -173,7 +242,7 @@ int main(int argc, char *argv[]) {
     }
 
     memcpy(&img_rootstart, buffer + IMAGE_ROOTPTR_OFFSET, IMAGE_ROOTPTR_LENGTH);
-    printf("Root directory starts at: %p\n", img_rootstart);
+    printf("Root directory starts at: %p\n\n", img_rootstart);
 
     walkpath(img_rootstart, "", &buffer);
 
