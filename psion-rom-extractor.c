@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdbool.h>
+#include <ctype.h>
 
 #define FLASH_TYPE   0xf1a5
 #define IMAGE_ISROM  0xffffffff
@@ -56,6 +57,19 @@
 #define ENTRY_PROPERTY_ISMODIFIED    32
 
 
+char *rtrim(char *s) {
+	char *p = s + strlen(s) - 1;
+	const char *end = p;
+	while (p >= s && isspace((unsigned char) *p)) {
+		p--;
+	}
+	if (p != end) {
+        p++;
+		*p = '\0';
+    }
+	return s;
+}
+
 void datecode(int date, int *year, int *month, int *day) {
     *day = date % 0x20;
     *month = (date >> 5) % 0x10;
@@ -68,20 +82,8 @@ void timecode(int time, int *hour, int *min, int *sec) {
     *hour = (time >> 11);
 }
 
-// size_t trimfilename(char *out, char *name, char *ext) {
-//     const char *name_end, *ext_end;
-    
-//     name_end = name + strlen(name) - 1;
-//     while (name_end > name && isspace((unsigned char)*name_end)) name_end--;
-//     ext_end = name + strlen(ext) - 1;
-//     while (name_end > name && isspace((unsigned char)*name_end)) name_end--;
-
-
-
-// }
-
 void walkpath(int pos, char path[], char *buffer[]) {
-    char entry_name[9], entry_ext[4];
+    char entry_name[9], entry_ext[4], entry_filename[12];
     char newpath[128];
     int entry_flags;
     int date = 0, day = 0, month = 0, year = 0;
@@ -90,18 +92,20 @@ void walkpath(int pos, char path[], char *buffer[]) {
     bool is_last_entry, is_file;
     char i;
 
-    // printf("\nDir starts at: %p\n", (pos + 3));
-
-    // printf("%s\n", path);
-    // printf("=================\n");
-
-//    for (i = 0; i < 5; i++) {
     while (true) {
         memcpy(&entry_flags, *buffer + (pos + ENTRY_FLAGS_OFFSET), ENTRY_FLAGS_LENGTH);
         memcpy(entry_name, *buffer + (pos + ENTRY_NAME_OFFSET), ENTRY_NAME_LENGTH);
-        entry_name[8] = 0x0;
+        entry_name[8] = 0;
+        rtrim(entry_name);
         memcpy(entry_ext, *buffer + (pos + ENTRY_EXT_OFFSET), ENTRY_EXT_LENGTH);
-        entry_ext[3] = 0x0;
+        entry_ext[3] = 0;
+        rtrim(entry_ext);
+
+        strcpy(entry_filename, entry_name);
+        if (strlen(entry_ext)) {
+            strcat(entry_filename, ".");
+            strcat(entry_filename, entry_ext);
+        }
 
         if (entry_flags & ENTRY_FLAG_ISFILE) {
             is_file = true;
@@ -115,56 +119,48 @@ void walkpath(int pos, char path[], char *buffer[]) {
         }
         
 
-        if (entry_flags & ENTRY_FLAG_ENTRYISVALID) {
-
-
-            // if (is_file) {
-            //     printf("FILE");
-            // } else {
-            //     printf("DIR");
-            // }
-            printf("%s%s", path, entry_name);
-
-            if (strncmp(entry_ext, "   ", 3) != 0) {
-                printf(".%s", entry_ext);
+        if (entry_flags & ENTRY_FLAG_ENTRYISVALID) {   
+            if (strlen(path)) {
+                printf("%s%s", path, entry_filename);
             }
+
             if (!is_file) {
                 printf("/");
             }
-            printf("\n");
+
+            printf(" (");
+            if (!strlen(path)) {
+                printf("root directory");
+            } else if (is_file) {
+                printf("file");
+            } else {
+                printf("directory");
+            }
+
+            printf(")\n");
             // printf("Flags: %p\n", entry_flags);
             memcpy(&date, *buffer + (pos + ENTRY_DATE_OFFSET), ENTRY_DATE_LENGTH);
             datecode(date, &year, &month, &day);
             memcpy(&time, *buffer + (pos + ENTRY_TIME_OFFSET), ENTRY_TIME_LENGTH);
             timecode(time, &hour, &min, &sec);
-            printf("Datestamp: %04d-%02d-%02d %02d:%02d:%02d\n", year, month, day, hour, min, sec);
+            printf("Timestamp: %04d-%02d-%02d %02d:%02d:%02d\n", year, month, day, hour, min, sec);
 
-            // if (entry_flags & ENTRY_FLAG_NOENTRYRECORD) {
-            //     printf("No entry record.\n");
-            // } else {
-            //     printf("Has an entry record.\n");
-            // }
             if (entry_flags & ENTRY_FLAG_NOALTRECORD) {
                 printf("No alternative record.\n");
             } else {
                 printf("Has an alternative record.\n");
             }
-            // if (is_last_entry) {
-            //     printf("This is the last entry in the current directory.\n");
-            // } else {
-            //     printf("Not the last entry in the current directory.\n");
-            // }
 
             memcpy(&first_entry_ptr, *buffer + (pos + ENTRY_FIRSTENTRYRECORD_OFFSET), ENTRY_FIRSTENTRYRECORD_LENGTH);
             printf("First Entry Pointer: 0x%06x\n", first_entry_ptr);
             if (!is_file) {
-                strcpy(newpath, path);
-                strcat(newpath, entry_name);
-                if (strncmp(entry_ext, "   ", 3) != 0) {
-                    strcat(newpath, ".");
-                    strcat(newpath, entry_ext);
+                if(strlen(path)) {
+                    strcpy(newpath, path);
+                    strcat(newpath, entry_filename);
+                    strcat(newpath, "/");
+                } else {
+                    strcpy(newpath, "/");
                 }
-                strcat(newpath, "/\0");
                 printf("\n");
                 walkpath (first_entry_ptr, newpath, buffer);
             }
@@ -175,14 +171,9 @@ void walkpath(int pos, char path[], char *buffer[]) {
             } else {
                 printf("directory");
             }
-            printf(": %s", entry_name);
-            if (strncmp(entry_ext, "   ", 3) != 0) {
-                printf(".%s", entry_ext);
-            }
-            printf("\n");
+            printf(": %s\n", entry_filename);
         }
         if (is_last_entry) {
-//            printf("<--\n");
             return;
         }
         memcpy(&pos, *buffer + (pos + ENTRY_NEXTENTRY_OFFSET), ENTRY_NEXTENTRY_LENGTH);
