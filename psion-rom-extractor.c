@@ -102,9 +102,10 @@ void timedecode(int time, int *hour, int *min, int *sec) {
     *hour = (time >> 11);
 }
 
-void getfile(int pos, char path[], char *buffer[], const char img_name[], const char entry_filename[]) {
+void getfile(int pos, char path[], char *buffer[], const char localpath[]) {
+    FILE *fp;
     int cur_data_ptr = 0, cur_data_len = 0;
-    int cur_pos = pos, next_pos = 0;
+    int cur_pos = pos, next_pos = 0, file_len = 0;
     char file_flags;
     int entry_count = 0;
 
@@ -112,8 +113,12 @@ void getfile(int pos, char path[], char *buffer[], const char img_name[], const 
 
     memcpy(&file_flags, *buffer + (cur_pos + FILE_FLAGS_OFFSET), FILE_FLAGS_LENGTH);
 
+    remove(localpath);
+    fp = fopen(localpath, "wb");
+
     while (1) {
         entry_count++;
+        printf("Entry %d:\n", entry_count);
         if (entry_count == 1) {
             memcpy(&cur_data_ptr, *buffer + (cur_pos + ENTRY_FIRSTDATARECORD_OFFSET), ENTRY_FIRSTDATARECORD_LENGTH);
             memcpy(&cur_data_len, *buffer + (cur_pos + ENTRY_FIRSTDATALEN_OFFSET), ENTRY_FIRSTDATALEN_LENGTH);
@@ -126,17 +131,29 @@ void getfile(int pos, char path[], char *buffer[], const char img_name[], const 
             memcpy(&next_pos, *buffer + (cur_pos + FILE_NEXTRECORDPTR_OFFSET), FILE_NEXTRECORDPTR_LENGTH);
         }
         printf("Data record: 0x%06x\n", cur_data_ptr);
-        printf("Data length: 0x%04x\n", cur_data_len);
+        printf("Data length: 0x%04x (%d)\n", cur_data_len, cur_data_len);
+
+        file_len += cur_data_len;
+
+        fwrite(*buffer + cur_data_ptr, 1, cur_data_len, fp);
 
         printf("Next entry record: 0x%06x\n", next_pos);
 
-        if (!((file_flags & ENTRY_FLAG_ISLASTENTRY) && next_pos != NULL_PTR)) {
+        if (file_flags & ENTRY_FLAG_NOENTRYRECORD) {
+            printf ("Last entry flag set...\n");
+        } else {
+            printf ("Last entry flag IS NOT set...\n");
+        }
+
+        if (!((file_flags & ENTRY_FLAG_NOENTRYRECORD) == 0 && next_pos != NULL_PTR)) {
             printf("End of file.\n");
             break;
         }
         cur_pos = next_pos;
     }
-    printf("Data record count: %d\n", entry_count);
+    
+    fclose(fp);
+    printf("Total file size: %d (in %d records)\n", file_len, entry_count);
 }
 
 
@@ -148,7 +165,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
     int time = 0, hour = 0, min = 0, sec = 0;
     int first_entry_ptr = 0, next_entry_ptr = 0;
     bool is_last_entry, is_file;
-    char localdir[256];
+    char localpath[256];
     struct stat st = {0};
 
     while (true) {
@@ -210,7 +227,11 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
             memcpy(&first_entry_ptr, *buffer + (pos + ENTRY_FIRSTENTRYRECORD_OFFSET), ENTRY_FIRSTENTRYRECORD_LENGTH);
             printf("First Entry Pointer: 0x%06x\n", first_entry_ptr);
             if (is_file) {
-                getfile(pos, path, buffer, img_name, entry_filename);
+                strcpy(localpath, img_name);
+                strcat(localpath, path);
+                strcat(localpath, entry_filename);
+                printf("File to be made: %s\n", localpath);
+                getfile(pos, path, buffer, localpath);
             } else { // it's a directory
                 if(strlen(path)) {
                     strcpy(newpath, path);
@@ -221,10 +242,10 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
                 }
                 printf("\n");
 
-                strcpy(localdir, img_name);
-                strcat(localdir, newpath);
-                if (stat(localdir, &st) == -1) {
-                    mkdir(localdir, 0700);
+                strcpy(localpath, img_name);
+                strcat(localpath, newpath);
+                if (stat(localpath, &st) == -1) {
+                    mkdir(localpath, 0700);
                 }
 
                 walkpath (first_entry_ptr, newpath, buffer, img_name);
