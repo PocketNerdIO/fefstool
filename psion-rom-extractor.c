@@ -56,6 +56,23 @@
 #define ENTRY_PROPERTY_ISDIRECTORY   16
 #define ENTRY_PROPERTY_ISMODIFIED    32
 
+#define FILE_FLAGS_OFFSET            0
+#define FILE_FLAGS_LENGTH            1
+#define FILE_NEXTRECORDPTR_OFFSET    1
+#define FILE_NEXTRECORDPTR_LENGTH    3
+#define FILE_ALTRECORDPTR_OFFSET     4
+#define FILE_ALTRECORDPTR_LENGTH     3
+#define FILE_DATARECORDPTR_OFFSET    7
+#define FILE_DATARECORDPTR_LENGTH    3
+#define FILE_DATARECORDLEN_OFFSET    10
+#define FILE_DATARECORDLEN_LENGTH    2
+#define FILE_ENTRYPROPERTIES_OFFSET  12
+#define FILE_ENTRYPROPERTIES_LENGTH  1
+#define FILE_TIME_OFFSET             13
+#define FILE_TIME_LENGTH             2
+#define FILE_DATE_OFFSET             15
+#define FILE_DATE_LENGTH             2
+
 
 char *rtrim(char *s) {
 	char *p = s + strlen(s) - 1;
@@ -70,13 +87,13 @@ char *rtrim(char *s) {
 	return s;
 }
 
-void datecode(int date, int *year, int *month, int *day) {
+void datedecode(int date, int *year, int *month, int *day) {
     *day = date % 0x20;
     *month = (date >> 5) % 0x10;
     *year = (date >> 9) + 1980;
 }
 
-void timecode(int time, int *hour, int *min, int *sec) {
+void timedecode(int time, int *hour, int *min, int *sec) {
     *sec = (time % 0x20) * 2;
     *min = (time >> 5) % 0x40;
     *hour = (time >> 11);
@@ -138,16 +155,13 @@ void walkpath(int pos, char path[], char *buffer[]) {
             }
 
             printf(")\n");
-            // printf("Flags: %p\n", entry_flags);
             memcpy(&date, *buffer + (pos + ENTRY_DATE_OFFSET), ENTRY_DATE_LENGTH);
-            datecode(date, &year, &month, &day);
+            datedecode(date, &year, &month, &day);
             memcpy(&time, *buffer + (pos + ENTRY_TIME_OFFSET), ENTRY_TIME_LENGTH);
-            timecode(time, &hour, &min, &sec);
+            timedecode(time, &hour, &min, &sec);
             printf("Timestamp: %04d-%02d-%02d %02d:%02d:%02d\n", year, month, day, hour, min, sec);
 
-            if (entry_flags & ENTRY_FLAG_NOALTRECORD) {
-                printf("No alternative record.\n");
-            } else {
+            if (!(entry_flags & ENTRY_FLAG_NOALTRECORD)) {
                 printf("Has an alternative record.\n");
             }
 
