@@ -4,9 +4,12 @@
 #include <string.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #define FLASH_TYPE   0xf1a5
 #define IMAGE_ISROM  0xffffffff
+#define NULL_PTR     0xFFFFFF
 
 #define IMAGE_ROOTPTR_OFFSET        11
 #define IMAGE_ROOTPTR_LENGTH        3
@@ -99,15 +102,54 @@ void timedecode(int time, int *hour, int *min, int *sec) {
     *hour = (time >> 11);
 }
 
-void walkpath(int pos, char path[], char *buffer[]) {
+void getfile(int pos, char path[], char *buffer[], const char img_name[], const char entry_filename[]) {
+    int cur_data_ptr = 0, cur_data_len = 0;
+    int cur_pos = pos, next_pos = 0;
+    char file_flags;
+    int entry_count = 0;
+
+    printf("File scanning...\n");
+
+    memcpy(&file_flags, *buffer + (cur_pos + FILE_FLAGS_OFFSET), FILE_FLAGS_LENGTH);
+
+    while (1) {
+        entry_count++;
+        if (entry_count == 1) {
+            memcpy(&cur_data_ptr, *buffer + (cur_pos + ENTRY_FIRSTDATARECORD_OFFSET), ENTRY_FIRSTDATARECORD_LENGTH);
+            memcpy(&cur_data_len, *buffer + (cur_pos + ENTRY_FIRSTDATALEN_OFFSET), ENTRY_FIRSTDATALEN_LENGTH);
+            memcpy(&file_flags, *buffer + (cur_pos + ENTRY_FLAGS_OFFSET), ENTRY_FLAGS_LENGTH);
+            memcpy(&next_pos, *buffer + (cur_pos + ENTRY_FIRSTENTRYRECORD_OFFSET), ENTRY_FIRSTENTRYRECORD_LENGTH);
+        } else {
+            memcpy(&cur_data_ptr, *buffer + (cur_pos + FILE_DATARECORDPTR_OFFSET), FILE_DATARECORDPTR_LENGTH);
+            memcpy(&cur_data_len, *buffer + (cur_pos + FILE_DATARECORDLEN_OFFSET), FILE_DATARECORDLEN_LENGTH);
+            memcpy(&file_flags, *buffer + (cur_pos + FILE_FLAGS_OFFSET), FILE_FLAGS_LENGTH);
+            memcpy(&next_pos, *buffer + (cur_pos + FILE_NEXTRECORDPTR_OFFSET), FILE_NEXTRECORDPTR_LENGTH);
+        }
+        printf("Data record: 0x%06x\n", cur_data_ptr);
+        printf("Data length: 0x%04x\n", cur_data_len);
+
+        printf("Next entry record: 0x%06x\n", next_pos);
+
+        if (!((file_flags & ENTRY_FLAG_ISLASTENTRY) && next_pos != NULL_PTR)) {
+            printf("End of file.\n");
+            break;
+        }
+        cur_pos = next_pos;
+    }
+    printf("Data record count: %d\n", entry_count);
+}
+
+
+void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
     char entry_name[9], entry_ext[4], entry_filename[12];
     char newpath[128];
-    int entry_flags;
+    char entry_flags;
     int date = 0, day = 0, month = 0, year = 0;
     int time = 0, hour = 0, min = 0, sec = 0;
-    int first_entry_ptr, next_entry_ptr;
+    int first_entry_ptr = 0, next_entry_ptr = 0;
     bool is_last_entry, is_file;
-    char i;
+    char localdir[256];
+    struct stat st = {0};
 
     while (true) {
         memcpy(&entry_flags, *buffer + (pos + ENTRY_FLAGS_OFFSET), ENTRY_FLAGS_LENGTH);
@@ -167,7 +209,9 @@ void walkpath(int pos, char path[], char *buffer[]) {
 
             memcpy(&first_entry_ptr, *buffer + (pos + ENTRY_FIRSTENTRYRECORD_OFFSET), ENTRY_FIRSTENTRYRECORD_LENGTH);
             printf("First Entry Pointer: 0x%06x\n", first_entry_ptr);
-            if (!is_file) {
+            if (is_file) {
+                getfile(pos, path, buffer, img_name, entry_filename);
+            } else { // it's a directory
                 if(strlen(path)) {
                     strcpy(newpath, path);
                     strcat(newpath, entry_filename);
@@ -176,7 +220,14 @@ void walkpath(int pos, char path[], char *buffer[]) {
                     strcpy(newpath, "/");
                 }
                 printf("\n");
-                walkpath (first_entry_ptr, newpath, buffer);
+
+                strcpy(localdir, img_name);
+                strcat(localdir, newpath);
+                if (stat(localdir, &st) == -1) {
+                    mkdir(localdir, 0700);
+                }
+
+                walkpath (first_entry_ptr, newpath, buffer, img_name);
             }
         } else {
             printf("Invalid entry found, skipping ");
@@ -234,7 +285,8 @@ int main(int argc, char *argv[]) {
     
     // Fetch ROM Name
     memcpy(img_name, buffer + IMAGE_NAME_OFFSET, IMAGE_NAME_LENGTH);
-    img_name[11] = 0x0;
+    img_name[11] = 0;
+    rtrim(img_name);
     printf("Image name: %s\n", img_name);
     printf("Length: %d\n", file_len);
 
@@ -249,7 +301,7 @@ int main(int argc, char *argv[]) {
     memcpy(&img_rootstart, buffer + IMAGE_ROOTPTR_OFFSET, IMAGE_ROOTPTR_LENGTH);
     printf("Root directory starts at: %p\n\n", img_rootstart);
 
-    walkpath(img_rootstart, "", &buffer);
+    walkpath(img_rootstart, "", &buffer, img_name);
 
     free(buffer);
     return(0);
