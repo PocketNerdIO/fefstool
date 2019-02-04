@@ -309,7 +309,7 @@ int main(int argc, char *argv[]) {
     img_name[11] = 0;
     rtrim(img_name);
     printf("Image name: %s\n", img_name);
-    printf("Length: %d\n", file_len);
+    printf("Length: %ld bytes\n", file_len);
 
     // Fetch ROM Size
     memcpy(&img_flashcount, buffer + IMAGE_FLASHCOUNT_OFFSET, IMAGE_FLASHCOUNT_LENGTH);
@@ -320,7 +320,7 @@ int main(int argc, char *argv[]) {
     }
 
     memcpy(&img_rootstart, buffer + IMAGE_ROOTPTR_OFFSET, IMAGE_ROOTPTR_LENGTH);
-    printf("Root directory starts at: %p\n\n", img_rootstart);
+    printf("Root directory starts at: 0x%06x\n\n", img_rootstart);
 
     walkpath(img_rootstart, "", &buffer, img_name);
 
