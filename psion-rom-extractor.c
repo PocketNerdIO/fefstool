@@ -20,28 +20,28 @@
 #define IMAGE_FLASHIDSTRING_OFFSET  33
 #define IMAGE_ROMIDSTRING_OFFSET    29
 
-#define ENTRY_NEXTENTRY_OFFSET         0
-#define ENTRY_NEXTENTRY_LENGTH         3
-#define ENTRY_NAME_OFFSET              3
-#define ENTRY_NAME_LENGTH              8
-#define ENTRY_EXT_OFFSET               11
-#define ENTRY_EXT_LENGTH               3
-#define ENTRY_FLAGS_OFFSET             14
-#define ENTRY_FLAGS_LENGTH             1
-#define ENTRY_FIRSTENTRYRECORD_OFFSET  15
-#define ENTRY_FIRSTENTRYRECORD_LENGTH  3
-#define ENTRY_ALTRECORD_OFFSET         18
-#define ENTRY_ALTRECORD_LENGTH         3
-#define ENTRY_ENTRYPROPERTIES_OFFSET   21
-#define ENTRY_ENTRYPROPERTIES_LENGTH   1
-#define ENTRY_TIME_OFFSET              22
-#define ENTRY_TIME_LENGTH              2
-#define ENTRY_DATE_OFFSET              24
-#define ENTRY_DATE_LENGTH              2
-#define ENTRY_FIRSTDATARECORD_OFFSET   26
-#define ENTRY_FIRSTDATARECORD_LENGTH   3
-#define ENTRY_FIRSTDATALEN_OFFSET      29
-#define ENTRY_FIRSTDATALEN_LENGTH      2
+#define ENTRY_NEXTENTRYPTR_OFFSET         0
+#define ENTRY_NEXTENTRYPTR_LENGTH         3
+#define ENTRY_NAME_OFFSET                 3
+#define ENTRY_NAME_LENGTH                 8
+#define ENTRY_EXT_OFFSET                  11
+#define ENTRY_EXT_LENGTH                  3
+#define ENTRY_FLAGS_OFFSET                14
+#define ENTRY_FLAGS_LENGTH                1
+#define ENTRY_FIRSTENTRYRECORDPTR_OFFSET  15
+#define ENTRY_FIRSTENTRYRECORDPTR_LENGTH  3
+#define ENTRY_ALTRECORDPTR_OFFSET         18
+#define ENTRY_ALTRECORDPTR_LENGTH         3
+#define ENTRY_ENTRYPROPERTIES_OFFSET      21
+#define ENTRY_ENTRYPROPERTIES_LENGTH      1
+#define ENTRY_TIMECODE_OFFSET             22
+#define ENTRY_TIMECODE_LENGTH             2
+#define ENTRY_DATECODE_OFFSET             24
+#define ENTRY_DATECODE_LENGTH             2
+#define ENTRY_FIRSTDATARECORDPTR_OFFSET   26
+#define ENTRY_FIRSTDATARECORDPTR_LENGTH   3
+#define ENTRY_FIRSTDATALEN_OFFSET         29
+#define ENTRY_FIRSTDATALEN_LENGTH         2
 
 #define ENTRY_FLAG_ENTRYISVALID               1
 #define ENTRY_FLAG_PROPERTIESDATETIMEISVALID  2
@@ -71,10 +71,10 @@
 #define FILE_DATARECORDLEN_LENGTH    2
 #define FILE_ENTRYPROPERTIES_OFFSET  12
 #define FILE_ENTRYPROPERTIES_LENGTH  1
-#define FILE_TIME_OFFSET             13
-#define FILE_TIME_LENGTH             2
-#define FILE_DATE_OFFSET             15
-#define FILE_DATE_LENGTH             2
+#define FILE_TIMECODE_OFFSET         13
+#define FILE_TIMECODE_LENGTH         2
+#define FILE_DATECODE_OFFSET         15
+#define FILE_DATECODE_LENGTH         2
 
 
 char *rtrim(char *s) {
@@ -120,10 +120,10 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[]) {
         entry_count++;
         printf("Entry %d:\n", entry_count);
         if (entry_count == 1) {
-            memcpy(&cur_data_ptr, *buffer + (cur_pos + ENTRY_FIRSTDATARECORD_OFFSET), ENTRY_FIRSTDATARECORD_LENGTH);
+            memcpy(&cur_data_ptr, *buffer + (cur_pos + ENTRY_FIRSTDATARECORDPTR_OFFSET), ENTRY_FIRSTDATARECORDPTR_LENGTH);
             memcpy(&cur_data_len, *buffer + (cur_pos + ENTRY_FIRSTDATALEN_OFFSET), ENTRY_FIRSTDATALEN_LENGTH);
             memcpy(&file_flags, *buffer + (cur_pos + ENTRY_FLAGS_OFFSET), ENTRY_FLAGS_LENGTH);
-            memcpy(&next_pos, *buffer + (cur_pos + ENTRY_FIRSTENTRYRECORD_OFFSET), ENTRY_FIRSTENTRYRECORD_LENGTH);
+            memcpy(&next_pos, *buffer + (cur_pos + ENTRY_FIRSTENTRYRECORDPTR_OFFSET), ENTRY_FIRSTENTRYRECORDPTR_LENGTH);
         } else {
             memcpy(&cur_data_ptr, *buffer + (cur_pos + FILE_DATARECORDPTR_OFFSET), FILE_DATARECORDPTR_LENGTH);
             memcpy(&cur_data_len, *buffer + (cur_pos + FILE_DATARECORDLEN_OFFSET), FILE_DATARECORDLEN_LENGTH);
@@ -206,9 +206,9 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
             }
 
             printf(")\n");
-            memcpy(&date, *buffer + (pos + ENTRY_DATE_OFFSET), ENTRY_DATE_LENGTH);
+            memcpy(&date, *buffer + (pos + ENTRY_DATECODE_OFFSET), ENTRY_DATECODE_LENGTH);
             datedecode(date, &year, &month, &day);
-            memcpy(&time, *buffer + (pos + ENTRY_TIME_OFFSET), ENTRY_TIME_LENGTH);
+            memcpy(&time, *buffer + (pos + ENTRY_TIMECODE_OFFSET), ENTRY_TIMECODE_LENGTH);
             timedecode(time, &hour, &min, &sec);
             printf("Timestamp: %04d-%02d-%02d %02d:%02d:%02d\n", year, month, day, hour, min, sec);
 
@@ -216,7 +216,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
                 printf("Has an alternative record.\n");
             }
 
-            memcpy(&first_entry_ptr, *buffer + (pos + ENTRY_FIRSTENTRYRECORD_OFFSET), ENTRY_FIRSTENTRYRECORD_LENGTH);
+            memcpy(&first_entry_ptr, *buffer + (pos + ENTRY_FIRSTENTRYRECORDPTR_OFFSET), ENTRY_FIRSTENTRYRECORDPTR_LENGTH);
             printf("First Entry Pointer: 0x%06x\n", first_entry_ptr);
             if (is_file) {
                 strcpy(localpath, img_name);
@@ -254,7 +254,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
         if (is_last_entry) {
             return;
         }
-        memcpy(&pos, *buffer + (pos + ENTRY_NEXTENTRY_OFFSET), ENTRY_NEXTENTRY_LENGTH);
+        memcpy(&pos, *buffer + (pos + ENTRY_NEXTENTRYPTR_OFFSET), ENTRY_NEXTENTRYPTR_LENGTH);
         printf("\n");
     }
 }
