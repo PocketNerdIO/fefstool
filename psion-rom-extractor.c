@@ -7,6 +7,13 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include "argparse/argparse.h"
+static const char *const usage[] = {
+    "psirom [options] [[--] args]",
+    "psirom [options]",
+    NULL,
+};
+
 #define FLASH_TYPE   0xf1a5
 #define IMAGE_ISROM  0xffffffff
 #define NULL_PTR     0xffffff
@@ -259,7 +266,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
     }
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, const char **argv) {
     FILE *fp;
     int i, c;
     long file_len;
@@ -269,21 +276,39 @@ int main(int argc, char *argv[]) {
     unsigned int img_flashcount;
     unsigned int img_rootstart; // Will probably replace this with something more flexible later.
 
+    char called_with[strlen(argv[0] + 1)];
+    bool only_list;
+    bool ignore_attributes;
 
-    if (argv[1] == NULL) {
-        printf("%s: missing argument\n", argv[0]);
+
+    strcpy(called_with, argv[0]);
+    strcat(called_with, "\0");
+
+    struct argparse_option options[] = {
+        OPT_HELP(),
+        OPT_BOOLEAN('l', "list", &only_list, "only list the contents of the image, don't extract files"),
+        OPT_BOOLEAN('n', "no-attributes", &ignore_attributes, "ignore file attributes"),
+        OPT_END(),
+    };
+    struct argparse argparse;
+    argparse_init(&argparse, options, usage, 0);
+    argparse_describe(&argparse, "\nExtracts files from Psion SIBO Flash and ROM SSD images.", "");
+    argc = argparse_parse(&argparse, argc, argv);
+
+    if (argv[0] == NULL) {
+        printf("%s: missing argument\n", called_with);
         exit(EXIT_FAILURE);
-    } else if (argv[2] != NULL) {
-        printf("%s: too many arguments\n", argv[0]);
+    } else if (argv[1] != NULL) {
+        printf("%s: too many arguments\n", called_with);
         exit(EXIT_FAILURE);
     }
 
-    fp = fopen(argv[1], "rb");
+    fp = fopen(argv[0], "rb");
 
     fread(&img_type, 2, 1, fp);
 
     if (img_type != FLASH_TYPE) {
-        printf("%s: %s: Not a Psion Flash or ROM SSD image.\n", argv[0], argv[1]);
+        printf("%s: %s: Not a Psion Flash or ROM SSD image.\n", called_with, argv[0]);
         fclose(fp);
         exit(EXIT_FAILURE); 
     }
