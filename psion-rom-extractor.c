@@ -9,7 +9,7 @@
 
 #define FLASH_TYPE   0xf1a5
 #define IMAGE_ISROM  0xffffffff
-#define NULL_PTR     0xFFFFFF
+#define NULL_PTR     0xffffff
 
 #define IMAGE_ROOTPTR_OFFSET        11
 #define IMAGE_ROOTPTR_LENGTH        3
@@ -90,13 +90,13 @@ char *rtrim(char *s) {
 	return s;
 }
 
-void datedecode(int date, int *year, int *month, int *day) {
+void datedecode(unsigned int date, unsigned int *year, char *month, char *day) {
     *day = date % 0x20;
     *month = (date >> 5) % 0x10;
     *year = (date >> 9) + 1980;
 }
 
-void timedecode(int time, int *hour, int *min, int *sec) {
+void timedecode(unsigned int time, char *hour, char *min, char *sec) {
     *sec = (time % 0x20) * 2;
     *min = (time >> 5) % 0x40;
     *hour = (time >> 11);
@@ -104,10 +104,10 @@ void timedecode(int time, int *hour, int *min, int *sec) {
 
 void getfile(int pos, char path[], char *buffer[], const char localpath[]) {
     FILE *fp;
-    int cur_data_ptr = 0, cur_data_len = 0;
-    int cur_pos = pos, next_pos = 0, file_len = 0;
+    unsigned int cur_data_ptr = 0, cur_data_len = 0;
+    unsigned int cur_pos = pos, next_pos = 0, file_len = 0;
     char file_flags;
-    int entry_count = 0;
+    unsigned int entry_count = 0;
 
     printf("File scanning...\n");
 
@@ -161,9 +161,10 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
     char entry_name[9], entry_ext[4], entry_filename[12];
     char newpath[128];
     char entry_flags;
-    int date = 0, day = 0, month = 0, year = 0;
-    int time = 0, hour = 0, min = 0, sec = 0;
-    int first_entry_ptr = 0, next_entry_ptr = 0;
+    unsigned int date = 0, time = 0;
+    char day = 0, month = 0, hour = 0, min = 0, sec = 0;
+    unsigned int year = 0;
+    unsigned int first_entry_ptr = 0, next_entry_ptr = 0;
     bool is_last_entry, is_file;
     char localpath[256];
     struct stat st = {0};
@@ -183,17 +184,8 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
             strcat(entry_filename, entry_ext);
         }
 
-        if (entry_flags & ENTRY_FLAG_ISFILE) {
-            is_file = true;
-        } else {
-            is_file = false;
-        }
-        if (entry_flags & ENTRY_FLAG_ISLASTENTRY) {
-            is_last_entry = true;
-        } else {
-            is_last_entry = false;
-        }
-        
+        is_file = (entry_flags & ENTRY_FLAG_ISFILE);
+        is_last_entry = (entry_flags & ENTRY_FLAG_ISLASTENTRY);
 
         if (entry_flags & ENTRY_FLAG_ENTRYISVALID) {   
             if (strlen(path)) {
@@ -233,7 +225,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
                 printf("File to be made: %s\n", localpath);
                 getfile(pos, path, buffer, localpath);
             } else { // it's a directory
-                if(strlen(path)) {
+                if (strlen(path)) {
                     strcpy(newpath, path);
                     strcat(newpath, entry_filename);
                     strcat(newpath, "/");
@@ -274,8 +266,8 @@ int main(int argc, char *argv[]) {
     char *buffer;
     char img_name[12];
     unsigned short img_type;
-    int img_flashcount;
-    int img_rootstart; // Will probably replace this with something more flexible later.
+    unsigned int img_flashcount;
+    unsigned int img_rootstart; // Will probably replace this with something more flexible later.
 
 
     if (argv[1] == NULL) {
