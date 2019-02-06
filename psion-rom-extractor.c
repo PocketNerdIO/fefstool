@@ -103,6 +103,22 @@ char *rtrim(char *s) {
 	return s;
 }
 
+#ifdef __unix__
+bool fileexists(const char *filename){
+    struct stat path_stat;
+
+    return (stat(filename, &path_stat) == 0 && S_ISREG(path_stat.st_mode));
+}
+#else
+BOOL fileexists(LPCTSTR szPath)
+{
+  DWORD dwAttrib = GetFileAttributes(szPath);
+
+  return (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+}
+#endif
+
+
 void datedecode(unsigned int date, unsigned int *year, char *month, char *day) {
     *day = date % 0x20;
     *month = (date >> 5) % 0x10;
@@ -272,21 +288,6 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
     }
 }
 
-#ifdef __unix__
-bool fileexists(const char* filename){
-    struct stat path_stat;
-
-    return (stat(filename,&path_stat) && S_ISREG(path_stat.st_mode));
-}
-#else
-BOOL fileexists(LPCTSTR filename)
-{
-  DWORD dwAttrib = GetFileAttributes(filename);
-
-  return (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
-}
-#endif
-
 int main(int argc, const char **argv) {
     FILE *fp;
     int i, c;
@@ -319,7 +320,7 @@ int main(int argc, const char **argv) {
     if (argv[0] == NULL) {
         printf("%s: missing argument\n", called_with);
         exit(EXIT_FAILURE);
-    } else if (argv[1] != NULL) {
+    } else if (argc > 1) {
         printf("%s: too many arguments\n", called_with);
         exit(EXIT_FAILURE);
     }
