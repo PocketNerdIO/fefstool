@@ -272,6 +272,21 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
     }
 }
 
+#ifdef __unix__
+bool fileexists(const char* filename){
+    struct stat path_stat;
+
+    return (stat(filename,&path_stat) && S_ISREG(path_stat.st_mode));
+}
+#else
+BOOL fileexists(LPCTSTR szPath)
+{
+  DWORD dwAttrib = GetFileAttributes(szPath);
+
+  return (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+}
+#endif
+
 int main(int argc, const char **argv) {
     FILE *fp;
     int i, c;
@@ -309,8 +324,12 @@ int main(int argc, const char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    fp = fopen(argv[0], "rb");
+    if (!fileexists(argv[0])) {
+        printf("%s: %s: file not found\n", called_with, argv[0]);
+        exit(EXIT_FAILURE);
+    }
 
+    fp = fopen(argv[0], "rb");
     fread(&img_type, 2, 1, fp);
 
     if (img_type != FLASH_TYPE) {
@@ -319,8 +338,9 @@ int main(int argc, const char **argv) {
         exit(EXIT_FAILURE); 
     }
 
+    // Get file size
     fseek(fp, 0, SEEK_END);
-    file_len = ftell(fp); // Get the current byte offset in the file
+    file_len = ftell(fp);
     rewind(fp);
 
     buffer = (char *)malloc((file_len + 1) * sizeof(char)); // Enough memory for file + \0
