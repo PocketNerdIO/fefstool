@@ -279,9 +279,9 @@ bool fileexists(const char* filename){
     return (stat(filename,&path_stat) && S_ISREG(path_stat.st_mode));
 }
 #else
-BOOL fileexists(LPCTSTR szPath)
+BOOL fileexists(LPCTSTR filename)
 {
-  DWORD dwAttrib = GetFileAttributes(szPath);
+  DWORD dwAttrib = GetFileAttributes(filename);
 
   return (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
 }
