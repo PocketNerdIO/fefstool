@@ -1,11 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
 #include <stdbool.h>
 #include <ctype.h>
+
+#ifdef __unix__
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#else
+#define ISWINDOWS
+#include <windows.h>
+#endif
 
 #include "argparse/argparse.h"
 static const char *const usage[] = {
