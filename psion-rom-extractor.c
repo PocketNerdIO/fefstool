@@ -4,13 +4,13 @@
 #include <stdbool.h>
 #include <ctype.h>
 
-#ifdef __unix__
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
+#ifdef _WIN32
+    #include <windows.h>
 #else
-#define ISWINDOWS
-#include <windows.h>
+    // Assume it's something POSIX-compliant
+    #include <unistd.h>
+    #include <sys/types.h>
+    #include <sys/stat.h>
 #endif
 
 #include "argparse/argparse.h"
@@ -103,18 +103,18 @@ char *rtrim(char *s) {
 	return s;
 }
 
-#ifdef __unix__
-bool fileexists(const char *filename){
-    struct stat path_stat;
-
-    return (stat(filename, &path_stat) == 0 && S_ISREG(path_stat.st_mode));
-}
-#else
+#ifdef _WIN32
 BOOL fileexists(LPCTSTR szPath)
 {
   DWORD dwAttrib = GetFileAttributes(szPath);
 
   return (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+}
+#else
+bool fileexists(const char *filename){
+    struct stat path_stat;
+
+    return (stat(filename, &path_stat) == 0 && S_ISREG(path_stat.st_mode));
 }
 #endif
 
@@ -169,9 +169,7 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[]) {
         printf("Next entry record: 0x%06x\n", next_pos);
 
         if (file_flags & ENTRY_FLAG_NOENTRYRECORD) {
-            printf ("Last entry flag set...\n");
-        } else {
-            printf ("Last entry flag IS NOT set...\n");
+            printf ("Last entry flag set.\n");
         }
 
         if (!((file_flags & ENTRY_FLAG_NOENTRYRECORD) == 0 && next_pos != NULL_PTR)) {
@@ -296,7 +294,7 @@ int main(int argc, const char **argv) {
     char img_name[12];
     unsigned short img_type;
     unsigned int img_flashcount;
-    unsigned int img_rootstart; // Will probably replace this with something more flexible later.
+    unsigned int img_rootstart; // TODO: Will probably replace this with something more flexible later.
 
     char called_with[strlen(argv[0] + 1)];
     bool only_list;
