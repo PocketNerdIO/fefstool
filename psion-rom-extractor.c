@@ -8,11 +8,13 @@
 
 #ifdef _WIN32
     #include <windows.h>
+    const char *slash = "\\";
 #else
     // Assume it's something POSIX-compliant
     #include <unistd.h>
     #include <sys/types.h>
     #include <sys/stat.h>
+    const char *slash = "/";
 #endif
 
 #include "argparse/argparse.h"
@@ -112,11 +114,34 @@ BOOL fileexists(LPCTSTR szPath)
 
   return (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
 }
+BOOL direxists(LPCTSTR szPath)
+{
+  DWORD dwAttrib = GetFileAttributes(szPath);
+
+  return (dwAttrib != INVALID_FILE_ATTRIBUTES && (dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+}
+BOOL fsitemexists(LPCTSTR szPath)
+{
+  DWORD dwAttrib = GetFileAttributes(szPath);
+
+  return (dwAttrib != INVALID_FILE_ATTRIBUTES);
+}
+
 #else
 bool fileexists(const char *filename){
     struct stat path_stat;
 
     return (stat(filename, &path_stat) == 0 && S_ISREG(path_stat.st_mode));
+}
+bool direxists(const char *filename){
+    struct stat path_stat;
+
+    return (stat(filename, &path_stat) == 0 && S_ISDIR(path_stat.st_mode));
+}
+bool fsitemexists(const char *filename){
+    struct stat path_stat;
+
+    return (stat(filename, &path_stat) == 0);
 }
 #endif
 
@@ -196,7 +221,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
     unsigned int first_entry_ptr = 0, next_entry_ptr = 0;
     bool is_last_entry, is_file;
     char localpath[256];
-    struct stat st = {0};
+    // struct stat st = {0};
     struct tm tm;
     time_t unixtime;
     char timeresult[30];
@@ -225,7 +250,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
             }
 
             if (!is_file) {
-                printf("/");
+                printf("%s", slash);
             }
 
             printf(" (");
@@ -271,16 +296,26 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
                 if (strlen(path)) {
                     strcpy(newpath, path);
                     strcat(newpath, entry_filename);
-                    strcat(newpath, "/");
+                    strcat(newpath, slash);
                 } else {
-                    strcpy(newpath, "/");
+                    strcpy(newpath, slash);
                 }
                 printf("\n");
 
                 strcpy(localpath, img_name);
                 strcat(localpath, newpath);
-                if (stat(localpath, &st) == -1) {
+                if (fsitemexists(localpath)) {
+                    // printf("Found %s, but is it a directory?\n", localpath)
+                    if(!direxists(localpath)) {
+                        printf("psirom: %s: item exists and isn't a folder", localpath);
+                        exit(EXIT_FAILURE);
+                    }
+                } else {
+#ifdef _WIN32
+                    CreateDirectory(localpath, NULL);
+#else
                     mkdir(localpath, 0700);
+#endif
                 }
 
                 walkpath (first_entry_ptr, newpath, buffer, img_name);
