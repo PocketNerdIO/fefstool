@@ -3,6 +3,8 @@
 #include <string.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include <time.h>
+#include <utime.h>
 
 #ifdef _WIN32
     #include <windows.h>
@@ -185,7 +187,7 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[]) {
 
 
 void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
-    char entry_name[9], entry_ext[4], entry_filename[12];
+    char entry_name[9], entry_ext[4], entry_filename[13];
     char newpath[128];
     char entry_flags;
     unsigned int date = 0, time = 0;
@@ -195,6 +197,9 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
     bool is_last_entry, is_file;
     char localpath[256];
     struct stat st = {0};
+    struct tm tm;
+    time_t unixtime;
+    char timeresult[30];
 
     while (true) {
         memcpy(&entry_flags, *buffer + (pos + ENTRY_FLAGS_OFFSET), ENTRY_FLAGS_LENGTH);
@@ -238,6 +243,17 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
             memcpy(&time, *buffer + (pos + ENTRY_TIMECODE_OFFSET), ENTRY_TIMECODE_LENGTH);
             timedecode(time, &hour, &min, &sec);
             printf("Timestamp: %04d-%02d-%02d %02d:%02d:%02d\n", year, month, day, hour, min, sec);
+
+            tm.tm_year = year;
+            tm.tm_mon = month;
+            tm.tm_mday = day;
+            tm.tm_hour = hour;
+            tm.tm_min = min;
+            tm.tm_sec = sec;
+            unixtime = mktime(&tm);
+            strftime(timeresult, sizeof(timeresult), "%Y-%m-%d %H:%M:%S", &tm);
+            printf("Checktime: %s\n", timeresult);
+
 
             if (!(entry_flags & ENTRY_FLAG_NOALTRECORD)) {
                 printf("Has an alternative record.\n");
@@ -292,9 +308,10 @@ int main(int argc, const char **argv) {
     long file_len;
     char *buffer;
     char img_name[12];
+    char volume_id[33];
     unsigned short img_type;
-    unsigned int img_flashcount;
-    unsigned int img_rootstart; // TODO: Will probably replace this with something more flexible later.
+    unsigned int img_flashcount = 0;
+    unsigned int img_rootstart = 0; // TODO: Will probably replace this with something more flexible later.
 
     char called_with[strlen(argv[0] + 1)];
     bool only_list;
@@ -353,13 +370,24 @@ int main(int argc, const char **argv) {
     printf("Image name: %s\n", img_name);
     printf("Length: %ld bytes\n", file_len);
 
-    // Fetch ROM Size
+    // Fetch Flash Count (or identify as ROM)
     memcpy(&img_flashcount, buffer + IMAGE_FLASHCOUNT_OFFSET, IMAGE_FLASHCOUNT_LENGTH);
     if (img_flashcount == IMAGE_ISROM) {
         printf("ROM image.\n");
+        memcpy(volume_id, buffer + IMAGE_ROMIDSTRING_OFFSET, 32);
     } else {
         printf("Flashed %d times.\n", img_flashcount);
+        memcpy(volume_id, buffer + IMAGE_FLASHIDSTRING_OFFSET, 32);
     }
+    for (i = 0; i <=32; i++) {
+        if ((unsigned char) volume_id[i] == 0xFF) {
+            printf("0xFF found at %d\n", i);
+            volume_id[i] = 0;
+            break;
+        }
+    }
+    volume_id[32] = 0;
+    printf("Volume ID: %s\n", volume_id);
 
     memcpy(&img_rootstart, buffer + IMAGE_ROOTPTR_OFFSET, IMAGE_ROOTPTR_LENGTH);
     printf("Root directory starts at: 0x%06x\n\n", img_rootstart);
