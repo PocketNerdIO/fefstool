@@ -304,11 +304,10 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
 
 int main(int argc, const char **argv) {
     FILE *fp;
-    int i, c;
+    int i;
     long file_len;
     char *buffer;
-    char img_name[12];
-    char volume_id[33];
+    char img_name[12], volume_id[33];
     unsigned short img_type;
     unsigned int img_flashcount = 0;
     unsigned int img_rootstart = 0; // TODO: Will probably replace this with something more flexible later.
@@ -381,7 +380,6 @@ int main(int argc, const char **argv) {
     }
     for (i = 0; i <=32; i++) {
         if ((unsigned char) volume_id[i] == 0xFF) {
-            printf("0xFF found at %d\n", i);
             volume_id[i] = 0;
             break;
         }
