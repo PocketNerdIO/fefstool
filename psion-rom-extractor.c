@@ -344,12 +344,10 @@ int main(int argc, const char **argv) {
     char *buffer;
     char img_name[12], volume_id[33];
     unsigned short img_type;
-    unsigned int img_flashcount = 0;
-    unsigned int img_rootstart = 0; // TODO: Will probably replace this with something more flexible later.
+    unsigned int img_flashcount = 0, img_rootstart = 0;
 
     char called_with[strlen(argv[0] + 1)];
-    bool only_list;
-    bool ignore_attributes;
+    bool only_list, ignore_attributes;
 
 
     strcpy(called_with, argv[0]);
