@@ -12,7 +12,7 @@
 #else
     // Assume it's something POSIX-compliant
     #include <unistd.h>
-    #include <sys/types.h>
+    // #include <sys/types.h>
     #include <sys/stat.h>
     const char *slash = "/";
 #endif
@@ -49,8 +49,8 @@ static const char *const usage[] = {
 #define ENTRY_FIRSTENTRYRECORDPTR_LENGTH  3
 #define ENTRY_ALTRECORDPTR_OFFSET         18
 #define ENTRY_ALTRECORDPTR_LENGTH         3
-#define ENTRY_ENTRYPROPERTIES_OFFSET      21
-#define ENTRY_ENTRYPROPERTIES_LENGTH      1
+#define ENTRY_PROPERTIES_OFFSET           21
+#define ENTRY_PROPERTIES_LENGTH           1
 #define ENTRY_TIMECODE_OFFSET             22
 #define ENTRY_TIMECODE_LENGTH             2
 #define ENTRY_DATECODE_OFFSET             24
@@ -71,7 +71,7 @@ static const char *const usage[] = {
 
 #define ENTRY_PROPERTY_ISREADONLY    1
 #define ENTRY_PROPERTY_ISHIDDEN      2
-#define ENTRY_PROPERTY_SYSTEM        4
+#define ENTRY_PROPERTY_ISSYSTEM      4
 #define ENTRY_PROPERTY_ISVOLUMENAME  8
 #define ENTRY_PROPERTY_ISDIRECTORY   16
 #define ENTRY_PROPERTY_ISMODIFIED    32
@@ -219,18 +219,19 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[], const
 void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
     char entry_name[9], entry_ext[4], entry_filename[13];
     char newpath[128];
-    char entry_flags;
+    char entry_flags, entry_properties;
     unsigned int date = 0, time = 0;
     char day = 0, month = 0, hour = 0, min = 0, sec = 0;
     unsigned int year = 0;
     unsigned int first_entry_ptr = 0, next_entry_ptr = 0;
-    bool is_last_entry, is_file;
+    bool is_last_entry, is_file, is_readonly, is_hidden, is_system;
     char localpath[256];
     struct tm tm;
     time_t unixtime;
 
     while (true) {
         memcpy(&entry_flags, *buffer + (pos + ENTRY_FLAGS_OFFSET), ENTRY_FLAGS_LENGTH);
+        memcpy(&entry_properties, *buffer + (pos + ENTRY_PROPERTIES_OFFSET), ENTRY_PROPERTIES_LENGTH);
         memcpy(entry_name, *buffer + (pos + ENTRY_NAME_OFFSET), ENTRY_NAME_LENGTH);
         entry_name[8] = 0;
         rtrim(entry_name);
@@ -246,6 +247,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
 
         is_file = (entry_flags & ENTRY_FLAG_ISFILE);
         is_last_entry = (entry_flags & ENTRY_FLAG_ISLASTENTRY);
+        is_readonly = (entry_properties & ENTRY_PROPERTY_ISREADONLY);
 
         if (entry_flags & ENTRY_FLAG_ENTRYISVALID) {   
             if (strlen(path)) {
@@ -266,6 +268,18 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
             }
 
             printf(")\n");
+
+            if (is_readonly) {
+                printf("Read-only flag set.\n");
+            }
+            if (is_hidden) {
+                printf("Hidden flag set.\n");
+            }
+            if (is_system) {
+                printf("System flag set.\n");
+            }
+            
+
             memcpy(&date, *buffer + (pos + ENTRY_DATECODE_OFFSET), ENTRY_DATECODE_LENGTH);
             datedecode(date, &year, &month, &day);
             memcpy(&time, *buffer + (pos + ENTRY_TIMECODE_OFFSET), ENTRY_TIMECODE_LENGTH);
@@ -319,6 +333,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
                 }
 
                 walkpath (first_entry_ptr, newpath, buffer, img_name);
+                // chmod(localpath, )
             }
         } else {
             printf("Invalid entry found, skipping ");
