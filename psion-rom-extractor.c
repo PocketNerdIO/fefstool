@@ -158,12 +158,13 @@ void timedecode(unsigned int time, char *hour, char *min, char *sec) {
     *hour = (time >> 11);
 }
 
-void getfile(int pos, char path[], char *buffer[], const char localpath[]) {
+void getfile(int pos, char path[], char *buffer[], const char localpath[], const time_t unixtime) {
     FILE *fp;
     unsigned int cur_data_ptr = 0, cur_data_len = 0;
     unsigned int cur_pos = pos, next_pos = 0, file_len = 0;
     char file_flags;
     unsigned int entry_count = 0;
+    struct utimbuf ubuf;
 
     printf("File scanning...\n");
 
@@ -207,6 +208,10 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[]) {
     }
     
     fclose(fp);
+
+    ubuf.modtime = unixtime;
+    utime(localpath, &ubuf);
+
     printf("Total file size: %d (in %d records)\n", file_len, entry_count);
 }
 
@@ -221,10 +226,8 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
     unsigned int first_entry_ptr = 0, next_entry_ptr = 0;
     bool is_last_entry, is_file;
     char localpath[256];
-    // struct stat st = {0};
     struct tm tm;
     time_t unixtime;
-    char timeresult[30];
 
     while (true) {
         memcpy(&entry_flags, *buffer + (pos + ENTRY_FLAGS_OFFSET), ENTRY_FLAGS_LENGTH);
@@ -276,8 +279,6 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
             tm.tm_min = min;
             tm.tm_sec = sec;
             unixtime = mktime(&tm);
-            strftime(timeresult, sizeof(timeresult), "%Y-%m-%d %H:%M:%S", &tm);
-            printf("Checktime: %s\n", timeresult);
 
 
             if (!(entry_flags & ENTRY_FLAG_NOALTRECORD)) {
@@ -291,7 +292,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
                 strcat(localpath, path);
                 strcat(localpath, entry_filename);
                 printf("File to be made: %s\n", localpath);
-                getfile(pos, path, buffer, localpath);
+                getfile(pos, path, buffer, localpath, unixtime);
             } else { // it's a directory
                 if (strlen(path)) {
                     strcpy(newpath, path);
@@ -305,7 +306,6 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
                 strcpy(localpath, img_name);
                 strcat(localpath, newpath);
                 if (fsitemexists(localpath)) {
-                    // printf("Found %s, but is it a directory?\n", localpath)
                     if(!direxists(localpath)) {
                         printf("psirom: %s: item exists and isn't a folder", localpath);
                         exit(EXIT_FAILURE);
