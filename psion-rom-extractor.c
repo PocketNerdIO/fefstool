@@ -187,11 +187,6 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[], const
             memcpy(&next_pos, *buffer + (cur_pos + FILE_NEXTRECORDPTR_OFFSET), FILE_NEXTRECORDPTR_LENGTH);
         }
 
-        if (next_pos > buffer_len) {
-            printf("psirom: detected pointer too high\n");
-            exit(EXIT_FAILURE);
-        }
-
         printf("Data record: 0x%06x\n", cur_data_ptr);
         printf("Data length: 0x%04x (%d)\n", cur_data_len, cur_data_len);
 
@@ -200,6 +195,10 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[], const
         fwrite(*buffer + cur_data_ptr, 1, cur_data_len, fp);
 
         printf("Next entry record: 0x%06x\n", next_pos);
+        if (next_pos > buffer_len) {
+            printf("psirom: detected pointer too high\n");
+            exit(EXIT_FAILURE);
+        }
 
         if (file_flags & ENTRY_FLAG_NOENTRYRECORD) {
             printf ("Last entry flag set.\n");
