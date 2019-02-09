@@ -18,8 +18,8 @@
 
 #include "argparse/argparse.h"
 static const char *const usage[] = {
-    "psirom [options] [[--] args]",
-    "psirom [options]",
+    "siboimg [options] [[--] args]",
+    "siboimg [options]",
     NULL,
 };
 
@@ -196,7 +196,7 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[], const
 
         printf("Next entry record: 0x%06x\n", next_pos);
         if (next_pos > buffer_len) {
-            printf("psirom: detected pointer too high\n");
+            printf("siboimg: detected pointer too high\n");
             exit(EXIT_FAILURE);
         }
 
@@ -306,7 +306,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
             memcpy(&first_entry_ptr, *buffer + (pos + ENTRY_FIRSTENTRYRECORDPTR_OFFSET), ENTRY_FIRSTENTRYRECORDPTR_LENGTH);
             printf("First Entry Pointer: 0x%06x\n", first_entry_ptr);
             if(first_entry_ptr > buffer_len) {
-                printf("psirom: detected pointer too high\n");
+                printf("siboimg: detected pointer too high\n");
                 exit(EXIT_FAILURE);
             }
 
@@ -330,7 +330,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
                 strcat(localpath, newpath);
                 if (fsitemexists(localpath)) {
                     if(!direxists(localpath)) {
-                        printf("psirom: %s: item exists and isn't a folder", localpath);
+                        printf("siboimg: %s: item exists and isn't a folder", localpath);
                         exit(EXIT_FAILURE);
                     }
                 } else {
