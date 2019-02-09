@@ -195,8 +195,8 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[], const
         fwrite(*buffer + cur_data_ptr, 1, cur_data_len, fp);
 
         printf("Next entry record: 0x%06x\n", next_pos);
-        if (next_pos > buffer_len) {
-            printf("siboimg: detected pointer too high\n");
+        if (next_pos > buffer_len && next_pos != NULL_PTR) {
+            printf("siboimg: detected pointer out of range\n");
             exit(EXIT_FAILURE);
         }
 
@@ -306,7 +306,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
             memcpy(&first_entry_ptr, *buffer + (pos + ENTRY_FIRSTENTRYRECORDPTR_OFFSET), ENTRY_FIRSTENTRYRECORDPTR_LENGTH);
             printf("First Entry Pointer: 0x%06x\n", first_entry_ptr);
             if(first_entry_ptr > buffer_len) {
-                printf("siboimg: detected pointer too high\n");
+                printf("siboimg: detected pointer out of range\n");
                 exit(EXIT_FAILURE);
             }
 
