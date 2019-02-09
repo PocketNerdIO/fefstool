@@ -269,8 +269,8 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
             timedecode(time, &hour, &min, &sec);
             printf("Timestamp: %04d-%02d-%02d %02d:%02d:%02d\n", year, month, day, hour, min, sec);
 
-            tm.tm_year = year;
-            tm.tm_mon = month;
+            tm.tm_year = year - 1900;
+            tm.tm_mon = month - 1;
             tm.tm_mday = day;
             tm.tm_hour = hour;
             tm.tm_min = min;
