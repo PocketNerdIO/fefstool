@@ -157,7 +157,7 @@ void timedecode(unsigned int time, char *hour, char *min, char *sec) {
     *hour = (time >> 11);
 }
 
-void getfile(int pos, char path[], char *buffer[], const char localpath[], const time_t unixtime) {
+void getfile(int pos, char path[], char *buffer[], const char localpath[], const time_t unixtime, const long buffer_len) {
     FILE *fp;
     unsigned int cur_data_ptr = 0, cur_data_len = 0;
     unsigned int cur_pos = pos, next_pos = 0, file_len = 0;
@@ -186,6 +186,12 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[], const
             memcpy(&file_flags, *buffer + (cur_pos + FILE_FLAGS_OFFSET), FILE_FLAGS_LENGTH);
             memcpy(&next_pos, *buffer + (cur_pos + FILE_NEXTRECORDPTR_OFFSET), FILE_NEXTRECORDPTR_LENGTH);
         }
+
+        if (next_pos > buffer_len) {
+            printf("psirom: detected pointer too high\n");
+            exit(EXIT_FAILURE);
+        }
+
         printf("Data record: 0x%06x\n", cur_data_ptr);
         printf("Data length: 0x%04x (%d)\n", cur_data_len, cur_data_len);
 
@@ -215,7 +221,7 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[], const
 }
 
 
-void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
+void walkpath(int pos, char path[], char *buffer[], const char img_name[], const long buffer_len) {
     char entry_name[9], entry_ext[4], entry_filename[13];
     char newpath[128];
     char entry_flags, entry_properties;
@@ -300,12 +306,17 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
 
             memcpy(&first_entry_ptr, *buffer + (pos + ENTRY_FIRSTENTRYRECORDPTR_OFFSET), ENTRY_FIRSTENTRYRECORDPTR_LENGTH);
             printf("First Entry Pointer: 0x%06x\n", first_entry_ptr);
+            if(first_entry_ptr > buffer_len) {
+                printf("psirom: detected pointer too high\n");
+                exit(EXIT_FAILURE);
+            }
+
             if (is_file) {
                 strcpy(localpath, img_name);
                 strcat(localpath, path);
                 strcat(localpath, entry_filename);
                 printf("File to be made: %s\n", localpath);
-                getfile(pos, path, buffer, localpath, unixtime);
+                getfile(pos, path, buffer, localpath, unixtime, buffer_len);
             } else { // it's a directory
                 if (strlen(path)) {
                     strcpy(newpath, path);
@@ -327,19 +338,19 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
 #ifdef _WIN32
                     CreateDirectory(localpath, NULL);
 #else
-                    mkdir(localpath, 0750);
+                    mkdir(localpath, 0777);
 #endif
                 }
 
-                walkpath (first_entry_ptr, newpath, buffer, img_name);
+                walkpath (first_entry_ptr, newpath, buffer, img_name, buffer_len);
                 if (is_readonly) {
 #ifdef _WIN32
                     SetFileAttributesA(localpath, FILE_ATTRIBUTE_READONLY);
 #else
                     if (is_file) {
-                        chmod(localpath, 440);
+                        chmod(localpath, 0444);
                     } else {
-                        chmod(localpath, 660);
+                        chmod(localpath, 0555);
                     }
 #endif
                 }
@@ -456,7 +467,7 @@ int main(int argc, const char **argv) {
     memcpy(&img_rootstart, buffer + IMAGE_ROOTPTR_OFFSET, IMAGE_ROOTPTR_LENGTH);
     printf("Root directory starts at: 0x%06x\n\n", img_rootstart);
 
-    walkpath(img_rootstart, "", &buffer, img_name);
+    walkpath(img_rootstart, "", &buffer, img_name, file_len);
 
     free(buffer);
     return(0);
