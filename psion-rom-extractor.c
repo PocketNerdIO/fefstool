@@ -12,7 +12,6 @@
 #else
     // Assume it's something POSIX-compliant
     #include <unistd.h>
-    // #include <sys/types.h>
     #include <sys/stat.h>
     const char *slash = "/";
 #endif
@@ -328,12 +327,30 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[]) {
 #ifdef _WIN32
                     CreateDirectory(localpath, NULL);
 #else
-                    mkdir(localpath, 0700);
+                    mkdir(localpath, 0750);
 #endif
                 }
 
                 walkpath (first_entry_ptr, newpath, buffer, img_name);
-                // chmod(localpath, )
+                if (is_readonly) {
+#ifdef _WIN32
+                    SetFileAttributesA(localpath, FILE_ATTRIBUTE_READONLY);
+#else
+                    if (is_file) {
+                        chmod(localpath, 440);
+                    } else {
+                        chmod(localpath, 660);
+                    }
+#endif
+                }
+#ifdef _WIN32
+                if (is_hidden) {
+                    SetFileAttributesA(localpath, FILE_ATTRIBUTE_HIDDEN);
+                }
+                if (is_system) {
+                    SetFileAttributesA(localpath, FILE_ATTRIBUTE_SYSTEM);
+                }
+#endif
             }
         } else {
             printf("Invalid entry found, skipping ");
