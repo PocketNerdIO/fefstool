@@ -347,7 +347,7 @@ int main(int argc, const char **argv) {
     unsigned int img_flashcount = 0, img_rootstart = 0;
 
     char called_with[strlen(argv[0] + 1)];
-    bool only_list, ignore_attributes;
+    bool only_list, ignore_attributes, ignore_modtime;
 
 
     strcpy(called_with, argv[0]);
@@ -357,6 +357,7 @@ int main(int argc, const char **argv) {
         OPT_HELP(),
         OPT_BOOLEAN('l', "list", &only_list, "only list the contents of the image, don't extract files"),
         OPT_BOOLEAN('n', "no-attributes", &ignore_attributes, "ignore file attributes"),
+        OPT_BOOLEAN('m', "no-modtime", &ignore_attributes, "ignore file modification times"),
         OPT_END(),
     };
     struct argparse argparse;
