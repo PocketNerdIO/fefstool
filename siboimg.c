@@ -165,7 +165,7 @@ struct tm psidateptime (const struct PsiDateTime datetime) {
     struct tm tm;
 
     tm.tm_year = (datetime.psi_date >> 9) + 80;
-    tm.tm_mon  = (datetime.psi_date >> 5) % 0x10;
+    tm.tm_mon  = ((datetime.psi_date >> 5) % 0x10) - 1;
     tm.tm_mday = datetime.psi_date % 0x20;
     tm.tm_hour = (datetime.psi_time >> 11);
     tm.tm_min  = (datetime.psi_time >> 5) % 0x40;
@@ -295,13 +295,6 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
             if (is_hidden)   printf("Hidden flag set.\n");
             if (is_system)   printf("System flag set.\n");
             
-
-            // memcpy(&date, *buffer + (pos + ENTRY_DATECODE_OFFSET), ENTRY_DATECODE_LENGTH);
-            // datedecode(date, &year, &month, &day);
-            // memcpy(&time, *buffer + (pos + ENTRY_TIMECODE_OFFSET), ENTRY_TIMECODE_LENGTH);
-            // timedecode(time, &hour, &min, &sec);
-            // printf("Timestamp: %04d-%02d-%02d %02d:%02d:%02d\n", year, month, day, hour, min, sec);
-
             memcpy(&psidatetime.psi_date, *buffer + (pos + ENTRY_DATECODE_OFFSET), ENTRY_DATECODE_LENGTH);
             memcpy(&psidatetime.psi_time, *buffer + (pos + ENTRY_TIMECODE_OFFSET), ENTRY_TIMECODE_LENGTH);
             tm = psidateptime(psidatetime);
@@ -310,6 +303,8 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
             strftime(datetime, sizeof(datetime), "%Y-%m-%d %H:%M:%S", &tm);
             printf("Timestamp: %s\n", datetime);
 
+            // memcpy(&date, *buffer + (pos + ENTRY_DATECODE_OFFSET), ENTRY_DATECODE_LENGTH);
+            // memcpy(&time, *buffer + (pos + ENTRY_TIMECODE_OFFSET), ENTRY_TIMECODE_LENGTH);
             // printf("PsiDate: %d == %d\n", date, psidatetime.psi_date);
             // printf("PsiTime: %d == %d\n", time, psidatetime.psi_time);
             // printf("%ld\n", unixtime);
