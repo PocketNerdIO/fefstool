@@ -320,7 +320,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
 
             memcpy(&first_entry_ptr, *buffer + (pos + ENTRY_FIRSTENTRYRECORDPTR_OFFSET), ENTRY_FIRSTENTRYRECORDPTR_LENGTH);
             printf("First Entry Pointer: 0x%06x\n", first_entry_ptr);
-            if(first_entry_ptr > buffer_len) {
+            if(first_entry_ptr > buffer_len && first_entry_ptr != NULL_PTR) {
                 printf("siboimg: detected pointer out of range\n");
                 exit(EXIT_FAILURE);
             }
