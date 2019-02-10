@@ -92,6 +92,10 @@ static const char *const usage[] = {
 #define FILE_DATECODE_OFFSET         15
 #define FILE_DATECODE_LENGTH         2
 
+struct PsiDateTime {
+    uint16_t psi_date;
+    uint16_t psi_time;
+};
 
 char *rtrim(char *s) {
 	char *p = s + strlen(s) - 1;
@@ -145,16 +149,29 @@ bool fsitemexists(const char *filename){
 #endif
 
 
-void datedecode(unsigned int date, unsigned int *year, char *month, char *day) {
-    *day = date % 0x20;
-    *month = (date >> 5) % 0x10;
-    *year = (date >> 9) + 1980;
-}
+// void datedecode(unsigned int date, unsigned int *year, char *month, char *day) {
+//     *day = date % 0x20;
+//     *month = (date >> 5) % 0x10;
+//     *year = (date >> 9) + 1980;
+// }
 
-void timedecode(unsigned int time, char *hour, char *min, char *sec) {
-    *sec = (time % 0x20) * 2;
-    *min = (time >> 5) % 0x40;
-    *hour = (time >> 11);
+// void timedecode(unsigned int time, char *hour, char *min, char *sec) {
+//     *sec = (time % 0x20) * 2;
+//     *min = (time >> 5) % 0x40;
+//     *hour = (time >> 11);
+// }
+
+struct tm psidateptime (const struct PsiDateTime datetime) {
+    struct tm tm;
+
+    tm.tm_year = (datetime.psi_date >> 9) + 80;
+    tm.tm_mon  = (datetime.psi_date >> 5) % 0x10;
+    tm.tm_mday = datetime.psi_date % 0x20;
+    tm.tm_hour = (datetime.psi_time >> 11);
+    tm.tm_min  = (datetime.psi_time >> 5) % 0x40;
+    tm.tm_sec  = (datetime.psi_time % 0x20) * 2;
+
+    return(tm);
 }
 
 void getfile(int pos, char path[], char *buffer[], const char localpath[], const time_t unixtime, const long buffer_len) {
@@ -200,9 +217,7 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[], const
             exit(EXIT_FAILURE);
         }
 
-        if (file_flags & ENTRY_FLAG_NOENTRYRECORD) {
-            printf ("Last entry flag set.\n");
-        }
+        if (file_flags & ENTRY_FLAG_NOENTRYRECORD) printf ("Last entry flag set.\n");
 
         if (!((file_flags & ENTRY_FLAG_NOENTRYRECORD) == 0 && next_pos != NULL_PTR)) {
             printf("End of file.\n");
@@ -221,17 +236,18 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[], const
 
 
 void walkpath(int pos, char path[], char *buffer[], const char img_name[], const long buffer_len) {
-    char entry_name[9], entry_ext[4], entry_filename[13];
-    char newpath[128];
+    char entry_name[9], entry_ext[4], entry_filename[13], newpath[128];
     char entry_flags, entry_properties;
-    unsigned int date = 0, time = 0;
-    char day = 0, month = 0, hour = 0, min = 0, sec = 0;
-    unsigned int year = 0;
+    // unsigned int date = 0, time = 0;
+    // char day = 0, month = 0, hour = 0, min = 0, sec = 0;
+    // unsigned int year = 0;
     unsigned int first_entry_ptr = 0, next_entry_ptr = 0;
     bool is_last_entry, is_file, is_readonly, is_hidden, is_system;
     char localpath[256];
     struct tm tm;
     time_t unixtime;
+    char datetime[80];
+    struct PsiDateTime psidatetime;
 
     while (true) {
         memcpy(&entry_flags, *buffer + (pos + ENTRY_FLAGS_OFFSET), ENTRY_FLAGS_LENGTH);
@@ -252,6 +268,8 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
         is_file = (entry_flags & ENTRY_FLAG_ISFILE);
         is_last_entry = (entry_flags & ENTRY_FLAG_ISLASTENTRY);
         is_readonly = (entry_properties & ENTRY_PROPERTY_ISREADONLY);
+        is_hidden = (entry_properties & ENTRY_PROPERTY_ISHIDDEN);
+        is_system = (entry_properties & ENTRY_PROPERTY_ISSYSTEM);
 
         if (entry_flags & ENTRY_FLAG_ENTRYISVALID) {   
             if (strlen(path)) {
@@ -273,32 +291,29 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
 
             printf(")\n");
 
-            if (is_readonly) {
-                printf("Read-only flag set.\n");
-            }
-            if (is_hidden) {
-                printf("Hidden flag set.\n");
-            }
-            if (is_system) {
-                printf("System flag set.\n");
-            }
+            if (is_readonly) printf("Read-only flag set.\n");
+            if (is_hidden)   printf("Hidden flag set.\n");
+            if (is_system)   printf("System flag set.\n");
             
 
-            memcpy(&date, *buffer + (pos + ENTRY_DATECODE_OFFSET), ENTRY_DATECODE_LENGTH);
-            datedecode(date, &year, &month, &day);
-            memcpy(&time, *buffer + (pos + ENTRY_TIMECODE_OFFSET), ENTRY_TIMECODE_LENGTH);
-            timedecode(time, &hour, &min, &sec);
-            printf("Timestamp: %04d-%02d-%02d %02d:%02d:%02d\n", year, month, day, hour, min, sec);
+            // memcpy(&date, *buffer + (pos + ENTRY_DATECODE_OFFSET), ENTRY_DATECODE_LENGTH);
+            // datedecode(date, &year, &month, &day);
+            // memcpy(&time, *buffer + (pos + ENTRY_TIMECODE_OFFSET), ENTRY_TIMECODE_LENGTH);
+            // timedecode(time, &hour, &min, &sec);
+            // printf("Timestamp: %04d-%02d-%02d %02d:%02d:%02d\n", year, month, day, hour, min, sec);
 
-            tm.tm_year = year - 1900;
-            tm.tm_mon = month - 1;
-            tm.tm_mday = day;
-            tm.tm_hour = hour;
-            tm.tm_min = min;
-            tm.tm_sec = sec;
+            memcpy(&psidatetime.psi_date, *buffer + (pos + ENTRY_DATECODE_OFFSET), ENTRY_DATECODE_LENGTH);
+            memcpy(&psidatetime.psi_time, *buffer + (pos + ENTRY_TIMECODE_OFFSET), ENTRY_TIMECODE_LENGTH);
+            tm = psidateptime(psidatetime);
             unixtime = mktime(&tm);
 
+            strftime(datetime, sizeof(datetime), "%Y-%m-%d %H:%M:%S", &tm);
+            printf("Timestamp: %s\n", datetime);
 
+            // printf("PsiDate: %d == %d\n", date, psidatetime.psi_date);
+            // printf("PsiTime: %d == %d\n", time, psidatetime.psi_time);
+            // printf("%ld\n", unixtime);
+            
             if (!(entry_flags & ENTRY_FLAG_NOALTRECORD)) {
                 printf("Has an alternative record.\n");
             }
