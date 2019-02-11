@@ -299,10 +299,6 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
             strftime(datetime, sizeof(datetime), "%Y-%m-%d %H:%M:%S", &tm);
             printf("Timestamp: %s\n", datetime);
 
-            // printf("PsiDate: %d == %d\n", psidatetime.psi_date, psidatetime2.psi_date);
-            // printf("PsiTime: %d == %d\n", psidatetime.psi_time, psidatetime2.psi_time);
-            // printf("%ld\n", unixtime);
-            
             if (!(entry_flags & ENTRY_FLAG_NOALTRECORD)) {
                 printf("Has an alternative record.\n");
             }
