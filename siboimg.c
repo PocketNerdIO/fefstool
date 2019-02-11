@@ -93,9 +93,9 @@ static const char *const usage[] = {
 #define FILE_DATECODE_LENGTH         2
 
 struct PsiDateTime {
-    uint16_t psi_date;
     uint16_t psi_time;
-};
+    uint16_t psi_date;
+}; //__attribute__((packed));
 
 char *rtrim(char *s) {
 	char *p = s + strlen(s) - 1;
@@ -238,15 +238,12 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[], const
 void walkpath(int pos, char path[], char *buffer[], const char img_name[], const long buffer_len) {
     char entry_name[9], entry_ext[4], entry_filename[13], newpath[128];
     char entry_flags, entry_properties;
-    // unsigned int date = 0, time = 0;
-    // char day = 0, month = 0, hour = 0, min = 0, sec = 0;
-    // unsigned int year = 0;
     unsigned int first_entry_ptr = 0, next_entry_ptr = 0;
     bool is_last_entry, is_file, is_readonly, is_hidden, is_system;
     char localpath[256];
     struct tm tm;
     time_t unixtime;
-    char datetime[80];
+    char datetime[20];
     struct PsiDateTime psidatetime;
 
     while (true) {
@@ -295,18 +292,15 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
             if (is_hidden)   printf("Hidden flag set.\n");
             if (is_system)   printf("System flag set.\n");
             
-            memcpy(&psidatetime.psi_date, *buffer + (pos + ENTRY_DATECODE_OFFSET), ENTRY_DATECODE_LENGTH);
-            memcpy(&psidatetime.psi_time, *buffer + (pos + ENTRY_TIMECODE_OFFSET), ENTRY_TIMECODE_LENGTH);
+            memcpy(&psidatetime, *buffer + (pos + ENTRY_TIMECODE_OFFSET), ENTRY_TIMECODE_LENGTH + ENTRY_DATECODE_LENGTH);
             tm = psidateptime(psidatetime);
             unixtime = mktime(&tm);
 
             strftime(datetime, sizeof(datetime), "%Y-%m-%d %H:%M:%S", &tm);
             printf("Timestamp: %s\n", datetime);
 
-            // memcpy(&date, *buffer + (pos + ENTRY_DATECODE_OFFSET), ENTRY_DATECODE_LENGTH);
-            // memcpy(&time, *buffer + (pos + ENTRY_TIMECODE_OFFSET), ENTRY_TIMECODE_LENGTH);
-            // printf("PsiDate: %d == %d\n", date, psidatetime.psi_date);
-            // printf("PsiTime: %d == %d\n", time, psidatetime.psi_time);
+            // printf("PsiDate: %d == %d\n", psidatetime.psi_date, psidatetime2.psi_date);
+            // printf("PsiTime: %d == %d\n", psidatetime.psi_time, psidatetime2.psi_time);
             // printf("%ld\n", unixtime);
             
             if (!(entry_flags & ENTRY_FLAG_NOALTRECORD)) {
