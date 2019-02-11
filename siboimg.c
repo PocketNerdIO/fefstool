@@ -385,19 +385,14 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
 
 int main(int argc, const char **argv) {
     FILE *fp;
-    int i;
+    char i;
     long file_len;
     char *buffer;
     char img_name[12], volume_id[33];
     unsigned short img_type;
     unsigned int img_flashcount = 0, img_rootstart = 0;
-
-    char called_with[strlen(argv[0] + 1)];
+    const char *called_with = argv[0];
     bool only_list, ignore_attributes, ignore_modtime;
-
-
-    strcpy(called_with, argv[0]);
-    strcat(called_with, "\0");
 
     struct argparse_option options[] = {
         OPT_HELP(),
