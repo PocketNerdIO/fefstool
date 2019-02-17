@@ -95,7 +95,15 @@ static const char *const usage[] = {
 struct PsiDateTime {
     uint16_t psi_time;
     uint16_t psi_date;
-}; //__attribute__((packed));
+};
+
+static struct {
+    char called_with[30];
+    int verbose;
+    bool only_list;
+    bool ignore_modtime;
+    bool ignore_attributes;
+} switches;
 
 char *rtrim(char *s) {
 	char *p = s + strlen(s) - 1;
@@ -246,6 +254,8 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
     char datetime[20];
     struct PsiDateTime psidatetime;
 
+    printf("VERBOSITY: %d\n", switches.verbose);
+
     while (true) {
         memcpy(&entry_flags, *buffer + (pos + ENTRY_FLAGS_OFFSET), ENTRY_FLAGS_LENGTH);
         memcpy(&entry_properties, *buffer + (pos + ENTRY_PROPERTIES_OFFSET), ENTRY_PROPERTIES_LENGTH);
@@ -306,7 +316,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
             memcpy(&first_entry_ptr, *buffer + (pos + ENTRY_FIRSTENTRYRECORDPTR_OFFSET), ENTRY_FIRSTENTRYRECORDPTR_LENGTH);
             printf("First Entry Pointer: 0x%06x\n", first_entry_ptr);
             if(first_entry_ptr > buffer_len && first_entry_ptr != NULL_PTR) {
-                printf("siboimg: detected pointer out of range\n");
+                printf("%s: detected pointer out of range\n", switches.called_with);
                 exit(EXIT_FAILURE);
             }
 
@@ -330,7 +340,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
                 strcat(localpath, newpath);
                 if (fsitemexists(localpath)) {
                     if(!direxists(localpath)) {
-                        printf("siboimg: %s: item exists and isn't a folder", localpath);
+                        printf("%s: %s: item exists and isn't a folder", switches.called_with, localpath);
                         exit(EXIT_FAILURE);
                     }
                 } else {
@@ -387,14 +397,16 @@ int main(int argc, const char **argv) {
     char img_name[12], volume_id[33];
     unsigned short img_type;
     unsigned int img_flashcount = 0, img_rootstart = 0;
-    const char *called_with = argv[0];
     bool only_list, ignore_attributes, ignore_modtime;
 
+    strcpy(switches.called_with, argv[0]);
+    switches.verbose = 0;
     struct argparse_option options[] = {
         OPT_HELP(),
-        OPT_BOOLEAN('l', "list", &only_list, "only list the contents of the image, don't extract files"),
-        OPT_BOOLEAN('n', "no-attributes", &ignore_attributes, "ignore file attributes"),
-        OPT_BOOLEAN('m', "no-modtime", &ignore_attributes, "ignore file modification times"),
+        OPT_BOOLEAN('l', "list", &switches.only_list, "only list the contents of the image, don't extract files"),
+        OPT_BOOLEAN('n', "no-attributes", &switches.ignore_attributes, "ignore file attributes"),
+        OPT_BOOLEAN('m', "no-modtime", &switches.ignore_modtime, "ignore file modification times"),
+        OPT_INTEGER('v', "verbose", &switches.verbose, "set verbosity level"),
         OPT_END(),
     };
     struct argparse argparse;
@@ -403,15 +415,15 @@ int main(int argc, const char **argv) {
     argc = argparse_parse(&argparse, argc, argv);
 
     if (argv[0] == NULL) {
-        printf("%s: missing argument\n", called_with);
+        printf("%s: missing argument\n", switches.called_with);
         exit(EXIT_FAILURE);
     } else if (argc > 1) {
-        printf("%s: too many arguments\n", called_with);
+        printf("%s: too many arguments\n", switches.called_with);
         exit(EXIT_FAILURE);
     }
 
     if (!fileexists(argv[0])) {
-        printf("%s: %s: file not found\n", called_with, argv[0]);
+        printf("%s: %s: file not found\n", switches.called_with, argv[0]);
         exit(EXIT_FAILURE);
     }
 
@@ -419,7 +431,7 @@ int main(int argc, const char **argv) {
     fread(&img_type, 2, 1, fp);
 
     if (img_type != FLASH_TYPE) {
-        printf("%s: %s: Not a Psion Flash or ROM SSD image.\n", called_with, argv[0]);
+        printf("%s: %s: Not a Psion Flash or ROM SSD image.\n", switches.called_with, argv[0]);
         fclose(fp);
         exit(EXIT_FAILURE); 
     }
