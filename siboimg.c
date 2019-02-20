@@ -118,6 +118,8 @@ char *rtrim(char *s) {
 	return s;
 }
 
+int count_dirs = 0, count_files = 0;
+
 #ifdef _WIN32
 BOOL fileexists(LPCTSTR szPath)
 {
@@ -254,7 +256,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
     char datetime[20];
     struct PsiDateTime psidatetime;
 
-    printf("VERBOSITY: %d\n", switches.verbose);
+    // printf("VERBOSITY: %d\n", switches.verbose);
 
     while (true) {
         memcpy(&entry_flags, *buffer + (pos + ENTRY_FLAGS_OFFSET), ENTRY_FLAGS_LENGTH);
@@ -326,11 +328,13 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
                 strcat(localpath, entry_filename);
                 printf("File to be made: %s\n", localpath);
                 getfile(pos, path, buffer, localpath, unixtime, buffer_len);
+                count_files++;
             } else { // it's a directory
                 if (strlen(path)) {
                     strcpy(newpath, path);
                     strcat(newpath, entry_filename);
                     strcat(newpath, slash);
+                    count_dirs++;
                 } else {
                     strcpy(newpath, slash);
                 }
@@ -476,5 +480,6 @@ int main(int argc, const char **argv) {
     walkpath(img_rootstart, "", &buffer, img_name, file_len);
 
     free(buffer);
+    printf("\nExtracted %d files in %d directories.\n", count_files, count_dirs);
     return(0);
 }
