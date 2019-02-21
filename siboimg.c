@@ -59,21 +59,21 @@ static const char *const usage[] = {
 #define ENTRY_FIRSTDATALEN_OFFSET         29
 #define ENTRY_FIRSTDATALEN_LENGTH         2
 
-#define ENTRY_FLAG_ENTRYISVALID               1
-#define ENTRY_FLAG_PROPERTIESDATETIMEISVALID  2
-#define ENTRY_FLAG_ISFILE                     4
-#define ENTRY_FLAG_NOENTRYRECORD              8
-#define ENTRY_FLAG_NOALTRECORD                16
-#define ENTRY_FLAG_ISLASTENTRY                32
-#define ENTRY_FLAG_BIT6                       64
-#define ENTRY_FLAG_BIT7                       128
+#define ENTRY_FLAG_ENTRYISVALID               1 << 0
+#define ENTRY_FLAG_PROPERTIESDATETIMEISVALID  1 << 1
+#define ENTRY_FLAG_ISFILE                     1 << 2
+#define ENTRY_FLAG_NOENTRYRECORD              1 << 3
+#define ENTRY_FLAG_NOALTRECORD                1 << 4
+#define ENTRY_FLAG_ISLASTENTRY                1 << 5
+#define ENTRY_FLAG_BIT6                       1 << 6
+#define ENTRY_FLAG_BIT7                       1 << 7
 
-#define ENTRY_PROPERTY_ISREADONLY    1
-#define ENTRY_PROPERTY_ISHIDDEN      2
-#define ENTRY_PROPERTY_ISSYSTEM      4
-#define ENTRY_PROPERTY_ISVOLUMENAME  8
-#define ENTRY_PROPERTY_ISDIRECTORY   16
-#define ENTRY_PROPERTY_ISMODIFIED    32
+#define ENTRY_PROPERTY_ISREADONLY    1 << 0
+#define ENTRY_PROPERTY_ISHIDDEN      1 << 1
+#define ENTRY_PROPERTY_ISSYSTEM      1 << 2
+#define ENTRY_PROPERTY_ISVOLUMENAME  1 << 3
+#define ENTRY_PROPERTY_ISDIRECTORY   1 << 4
+#define ENTRY_PROPERTY_ISMODIFIED    1 << 5
 
 #define FILE_FLAGS_OFFSET            0
 #define FILE_FLAGS_LENGTH            1
