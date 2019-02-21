@@ -184,6 +184,15 @@ struct tm psidateptime (const struct PsiDateTime datetime) {
     return(tm);
 }
 
+struct PsiDateTime psidateftime(const struct tm tm) {
+    struct PsiDateTime datetime;
+    
+    datetime.psi_date = 0x200 * (tm.tm_year - 80) + 0x20 * (tm.tm_mon + 1) + tm.tm_mday;
+    datetime.psi_time = 0x800 * tm.tm_hour + 0x20 * tm.tm_min + tm.tm_sec / 2; 
+
+    return(datetime);
+}
+
 void getfile(int pos, char path[], char *buffer[], const char localpath[], const time_t unixtime, const long buffer_len) {
     FILE *fp;
     unsigned int cur_data_ptr = 0, cur_data_len = 0;
@@ -227,7 +236,7 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[], const
             exit(EXIT_FAILURE);
         }
 
-        if (file_flags & ENTRY_FLAG_NOENTRYRECORD) printf ("Last entry flag set.\n");
+        if (file_flags & ENTRY_FLAG_NOENTRYRECORD) printf("Last entry flag set.\n");
 
         if (!((file_flags & ENTRY_FLAG_NOENTRYRECORD) == 0 && next_pos != NULL_PTR)) {
             printf("End of file.\n");
