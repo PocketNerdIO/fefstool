@@ -360,11 +360,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
 #ifdef _WIN32
                     SetFileAttributesA(localpath, FILE_ATTRIBUTE_READONLY);
 #else
-                    if (is_file) {
-                        chmod(localpath, 0444);
-                    } else {
-                        chmod(localpath, 0555);
-                    }
+                    chmod(localpath, (is_file) ? 0444 : 0555);
 #endif
                 }
 #ifdef _WIN32
@@ -378,11 +374,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
             }
         } else {
             printf("Invalid entry found, skipping ");
-            if (is_file) {
-                printf ("file");
-            } else {
-                printf("directory");
-            }
+            printf((is_file) ? "file" : "directory");
             printf(": %s\n", entry_filename);
         }
         if (is_last_entry) {
