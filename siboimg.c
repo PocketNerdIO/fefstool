@@ -223,12 +223,14 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[], const
             memcpy(&next_pos, *buffer + (cur_pos + FILE_NEXTRECORDPTR_OFFSET), FILE_NEXTRECORDPTR_LENGTH);
         }
 
-        printf("Data record: 0x%06x\n", cur_data_ptr);
+        printf("Data record: 0x%06x (%d)\n", cur_data_ptr, cur_data_ptr);
         printf("Data length: 0x%04x (%d)\n", cur_data_len, cur_data_len);
 
         file_len += cur_data_len;
 
+        // printf("Writing...\n");
         fwrite(*buffer + cur_data_ptr, 1, cur_data_len, fp);
+        // printf("Done writing.\n");
 
         printf("Next entry record: 0x%06x\n", next_pos);
         if (next_pos > buffer_len && next_pos != NULL_PTR) {
