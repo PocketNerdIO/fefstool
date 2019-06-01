@@ -1,10 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
 #include <ctype.h>
 #include <time.h>
 #include <utime.h>
+// #include "sibo.h"
+#include "statwrap.h"
 
 #ifdef _WIN32
     #include <windows.h>
@@ -12,7 +15,7 @@
 #else
     // Assume it's something POSIX-compliant
     #include <unistd.h>
-    #include <sys/stat.h>
+    // #include <sys/stat.h>
     const char *slash = "/";
 #endif
 
@@ -99,7 +102,7 @@ struct PsiDateTime {
 
 static struct {
     char called_with[30];
-    int verbose;
+    unsigned char verbose;
     bool only_list;
     bool ignore_modtime;
     bool ignore_attributes;
@@ -120,56 +123,9 @@ char *rtrim(char *s) {
 
 int count_dirs = 0, count_files = 0;
 
-#ifdef _WIN32
-BOOL fileexists(LPCTSTR szPath)
-{
-  DWORD dwAttrib = GetFileAttributes(szPath);
-
-  return (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
-}
-BOOL direxists(LPCTSTR szPath)
-{
-  DWORD dwAttrib = GetFileAttributes(szPath);
-
-  return (dwAttrib != INVALID_FILE_ATTRIBUTES && (dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
-}
-BOOL fsitemexists(LPCTSTR szPath)
-{
-  DWORD dwAttrib = GetFileAttributes(szPath);
-
-  return (dwAttrib != INVALID_FILE_ATTRIBUTES);
-}
-
-#else
-bool fileexists(const char *filename){
-    struct stat path_stat;
-
-    return (stat(filename, &path_stat) == 0 && S_ISREG(path_stat.st_mode));
-}
-bool direxists(const char *filename){
-    struct stat path_stat;
-
-    return (stat(filename, &path_stat) == 0 && S_ISDIR(path_stat.st_mode));
-}
-bool fsitemexists(const char *filename){
-    struct stat path_stat;
-
-    return (stat(filename, &path_stat) == 0);
-}
-#endif
 
 
-// void datedecode(unsigned int date, unsigned int *year, char *month, char *day) {
-//     *day = date % 0x20;
-//     *month = (date >> 5) % 0x10;
-//     *year = (date >> 9) + 1980;
-// }
 
-// void timedecode(unsigned int time, char *hour, char *min, char *sec) {
-//     *sec = (time % 0x20) * 2;
-//     *min = (time >> 5) % 0x40;
-//     *hour = (time >> 11);
-// }
 
 struct tm psidateptime (const struct PsiDateTime datetime) {
     struct tm tm;
