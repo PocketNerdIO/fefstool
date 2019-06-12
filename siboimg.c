@@ -6,6 +6,7 @@
 #include <ctype.h>
 #include <time.h>
 #include <utime.h>
+#include <stdarg.h>
 // #include "sibo.h"
 #include "statwrap.h"
 
@@ -15,7 +16,6 @@
 #else
     // Assume it's something POSIX-compliant
     #include <unistd.h>
-    // #include <sys/stat.h>
     const char *slash = "/";
 #endif
 
@@ -106,7 +106,7 @@ static struct {
     bool only_list;
     bool ignore_modtime;
     bool ignore_attributes;
-} switches;
+} switches = {0, 0, false, false, false};
 
 char *rtrim(char *s) {
 	char *p = s + strlen(s) - 1;
@@ -123,6 +123,17 @@ char *rtrim(char *s) {
 
 int count_dirs = 0, count_files = 0;
 
+
+void printlogf(const int verbosity, const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+
+    if(verbosity <= switches.verbose) {
+        vprintf(format, args);
+    }
+
+    va_end(args);
+}
 
 
 
@@ -157,7 +168,7 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[], const
     unsigned int entry_count = 0;
     struct utimbuf ubuf;
 
-    printf("File scanning...\n");
+    printlogf(2, "File scanning...\n");
 
     memcpy(&file_flags, *buffer + (cur_pos + FILE_FLAGS_OFFSET), FILE_FLAGS_LENGTH);
 
@@ -166,7 +177,7 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[], const
 
     while (1) {
         entry_count++;
-        printf("Entry %d:\n", entry_count);
+        printlogf(2, "Entry %d:\n", entry_count);
         if (entry_count == 1) {
             memcpy(&cur_data_ptr, *buffer + (cur_pos + ENTRY_FIRSTDATARECORDPTR_OFFSET), ENTRY_FIRSTDATARECORDPTR_LENGTH);
             memcpy(&cur_data_len, *buffer + (cur_pos + ENTRY_FIRSTDATALEN_OFFSET), ENTRY_FIRSTDATALEN_LENGTH);
@@ -179,8 +190,8 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[], const
             memcpy(&next_pos, *buffer + (cur_pos + FILE_NEXTRECORDPTR_OFFSET), FILE_NEXTRECORDPTR_LENGTH);
         }
 
-        printf("Data record: 0x%06x (%d)\n", cur_data_ptr, cur_data_ptr);
-        printf("Data length: 0x%04x (%d)\n", cur_data_len, cur_data_len);
+        printlogf(2, "Data record: 0x%06x (%d)\n", cur_data_ptr, cur_data_ptr);
+        printlogf(2, "Data length: 0x%04x (%d)\n", cur_data_len, cur_data_len);
 
         file_len += cur_data_len;
 
@@ -188,16 +199,16 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[], const
         fwrite(*buffer + cur_data_ptr, 1, cur_data_len, fp);
         // printf("Done writing.\n");
 
-        printf("Next entry record: 0x%06x\n", next_pos);
+        printlogf(2, "Next entry record: 0x%06x\n", next_pos);
         if (next_pos > buffer_len && next_pos != NULL_PTR) {
-            printf("siboimg: detected pointer out of range\n");
+            printf("siboimg: detected pointer out of range (0x%06x)\n", next_pos);
             exit(EXIT_FAILURE);
         }
 
-        if (file_flags & ENTRY_FLAG_NOENTRYRECORD) printf("Last entry flag set.\n");
+        if (file_flags & ENTRY_FLAG_NOENTRYRECORD) printlogf(2, "Last entry flag set.\n");
 
         if (!((file_flags & ENTRY_FLAG_NOENTRYRECORD) == 0 && next_pos != NULL_PTR)) {
-            printf("End of file.\n");
+            printlogf(2, "End of file.\n");
             break;
         }
         cur_pos = next_pos;
@@ -208,9 +219,8 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[], const
     ubuf.modtime = unixtime;
     utime(localpath, &ubuf);
 
-    printf("Total file size: %d (in %d records)\n", file_len, entry_count);
+    printlogf(1, "Total file size: %d (in %d records)\n", file_len, entry_count);
 }
-
 
 void walkpath(int pos, char path[], char *buffer[], const char img_name[], const long buffer_len) {
     char entry_name[9], entry_ext[4], entry_filename[13], newpath[128];
@@ -247,7 +257,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
         is_hidden = (entry_properties & ENTRY_PROPERTY_ISHIDDEN);
         is_system = (entry_properties & ENTRY_PROPERTY_ISSYSTEM);
 
-        if (entry_flags & ENTRY_FLAG_ENTRYISVALID) {   
+        if (entry_flags & ENTRY_FLAG_ENTRYISVALID) {
             if (strlen(path)) {
                 printf("%s%s", path, entry_filename);
             }
@@ -256,34 +266,39 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
                 printf("%s", slash);
             }
 
-            printf(" (");
-            if (!strlen(path)) {
-                printf("root directory");
-            } else if (is_file) {
-                printf("file");
-            } else {
-                printf("directory");
+            if (switches.verbose > 0) {
+                printf(" (");
+                if (!strlen(path)) {
+                    printf("root directory");
+                } else if (is_file) {
+                    printf("file");
+                } else {
+                    printf("directory");
+                }
+
+                printf(")");
             }
 
-            printf(")\n");
+            printf("\n");
 
-            if (is_readonly) printf("Read-only flag set.\n");
-            if (is_hidden)   printf("Hidden flag set.\n");
-            if (is_system)   printf("System flag set.\n");
+                if (is_readonly) printlogf(1, "Read-only flag set.\n");
+                if (is_hidden)   printlogf(1, "Hidden flag set.\n");
+                if (is_system)   printlogf(1, "System flag set.\n");
             
             memcpy(&psidatetime, *buffer + (pos + ENTRY_TIMECODE_OFFSET), ENTRY_TIMECODE_LENGTH + ENTRY_DATECODE_LENGTH);
             tm = psidateptime(psidatetime);
             unixtime = mktime(&tm);
 
             strftime(datetime, sizeof(datetime), "%Y-%m-%d %H:%M:%S", &tm);
-            printf("Timestamp: %s\n", datetime);
+            printlogf(1, "Timestamp: %s\n", datetime);
 
             if (!(entry_flags & ENTRY_FLAG_NOALTRECORD)) {
                 printf("Has an alternative record.\n");
             }
 
             memcpy(&first_entry_ptr, *buffer + (pos + ENTRY_FIRSTENTRYRECORDPTR_OFFSET), ENTRY_FIRSTENTRYRECORDPTR_LENGTH);
-            printf("First Entry Pointer: 0x%06x\n", first_entry_ptr);
+            printlogf(2, "First Entry Pointer: 0x%06x\n", first_entry_ptr);
+
             if(first_entry_ptr > buffer_len && first_entry_ptr != NULL_PTR) {
                 printf("%s: detected pointer out of range\n", switches.called_with);
                 exit(EXIT_FAILURE);
@@ -293,7 +308,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
                 strcpy(localpath, img_name);
                 strcat(localpath, path);
                 strcat(localpath, entry_filename);
-                printf("File to be made: %s\n", localpath);
+                printlogf(2, "File to be made: %s\n", localpath);
                 getfile(pos, path, buffer, localpath, unixtime, buffer_len);
                 count_files++;
             } else { // it's a directory
@@ -305,7 +320,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
                 } else {
                     strcpy(newpath, slash);
                 }
-                printf("\n");
+                printlogf(1, "\n");
 
                 strcpy(localpath, img_name);
                 strcat(localpath, newpath);
@@ -348,7 +363,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
             return;
         }
         memcpy(&pos, *buffer + (pos + ENTRY_NEXTENTRYPTR_OFFSET), ENTRY_NEXTENTRYPTR_LENGTH);
-        printf("\n");
+        printlogf(1, "\n");
     }
 }
 
@@ -363,7 +378,7 @@ int main(int argc, const char **argv) {
     bool only_list, ignore_attributes, ignore_modtime;
 
     strcpy(switches.called_with, argv[0]);
-    switches.verbose = 0;
+    // switches.verbose = 0;
     struct argparse_option options[] = {
         OPT_HELP(),
         OPT_BOOLEAN('l', "list", &switches.only_list, "only list the contents of the image, don't extract files"),
@@ -376,6 +391,8 @@ int main(int argc, const char **argv) {
     argparse_init(&argparse, options, usage, 0);
     argparse_describe(&argparse, "\nExtracts files from Psion SIBO Flash and ROM SSD images.", "");
     argc = argparse_parse(&argparse, argc, argv);
+
+    // printf("VERBOSITY: %d\n", switches.verbose);
 
     if (argv[0] == NULL) {
         printf("%s: missing argument\n", switches.called_with);
@@ -434,7 +451,8 @@ int main(int argc, const char **argv) {
     printf("Volume ID: %s\n", volume_id);
 
     memcpy(&img_rootstart, buffer + IMAGE_ROOTPTR_OFFSET, IMAGE_ROOTPTR_LENGTH);
-    printf("Root directory starts at: 0x%06x\n\n", img_rootstart);
+    printlogf(2, "Root directory starts at: 0x%06x\n", img_rootstart);
+    printf("\n");
 
     walkpath(img_rootstart, "", &buffer, img_name, file_len);
 
