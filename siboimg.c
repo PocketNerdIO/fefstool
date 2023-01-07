@@ -28,39 +28,77 @@ static const char *const usage[] = {
 
 #define FLASH_TYPE   0xf1a5
 #define IMAGE_ISROM  0xffffffff
-#define NULL_PTR     0xffffff
+#define NULL_PTR_24  0xffffff
+#define NULL_PTR_32  0xffffffff
+
+#define PTR_LEN_32   4
+#define PTR_LEN_24   3
+
+// IMAGE OFFSETS AND SIZES
+#define IMAGE_POINTERSIZE_OFFSET    10
 
 #define IMAGE_ROOTPTR_OFFSET        11
 #define IMAGE_ROOTPTR_LENGTH        3
-#define IMAGE_NAME_OFFSET           14
-#define IMAGE_NAME_LENGTH           11
-#define IMAGE_FLASHCOUNT_OFFSET     25
-#define IMAGE_FLASHCOUNT_LENGTH     4
-#define IMAGE_FLASHIDSTRING_OFFSET  33
-#define IMAGE_ROMIDSTRING_OFFSET    29
 
-#define ENTRY_NEXTENTRYPTR_OFFSET         0
-#define ENTRY_NEXTENTRYPTR_LENGTH         3
-#define ENTRY_NAME_OFFSET                 3
-#define ENTRY_NAME_LENGTH                 8
-#define ENTRY_EXT_OFFSET                  11
-#define ENTRY_EXT_LENGTH                  3
-#define ENTRY_FLAGS_OFFSET                14
-#define ENTRY_FLAGS_LENGTH                1
-#define ENTRY_FIRSTENTRYRECORDPTR_OFFSET  15
-#define ENTRY_FIRSTENTRYRECORDPTR_LENGTH  3
-#define ENTRY_ALTRECORDPTR_OFFSET         18
-#define ENTRY_ALTRECORDPTR_LENGTH         3
-#define ENTRY_PROPERTIES_OFFSET           21
-#define ENTRY_PROPERTIES_LENGTH           1
-#define ENTRY_TIMECODE_OFFSET             22
-#define ENTRY_TIMECODE_LENGTH             2
-#define ENTRY_DATECODE_OFFSET             24
-#define ENTRY_DATECODE_LENGTH             2
-#define ENTRY_FIRSTDATARECORDPTR_OFFSET   26
-#define ENTRY_FIRSTDATARECORDPTR_LENGTH   3
-#define ENTRY_FIRSTDATALEN_OFFSET         29
+#define IMAGE_NAME_OFFSET_24        14
+#define IMAGE_NAME_OFFSET_32        15
+#define IMAGE_NAME_LENGTH           11
+
+#define IMAGE_FLASHCOUNT_OFFSET     25 // Different for FEFS32?
+#define IMAGE_FLASHCOUNT_LENGTH     4
+
+#define IMAGE_FLASHIDSTRING_OFFSET  33 // Different for FEFS32?
+#define IMAGE_ROMIDSTRING_OFFSET    29 // Different for FEFS32?
+
+
+// Next Entry Pointer
+#define ENTRY_NEXTENTRYPTR_OFFSET            0
+#define ENTRY_NEXTENTRYPTR_LENGTH_24         3
+#define ENTRY_NEXTENTRYPTR_LENGTH_32         3
+// Entry Name
+#define ENTRY_NAME_OFFSET_24                 3
+#define ENTRY_NAME_OFFSET_32                 4
+#define ENTRY_NAME_LENGTH                    8
+// Entry Extension
+#define ENTRY_EXT_OFFSET_24                  11
+#define ENTRY_EXT_OFFSET_32                  12
+#define ENTRY_EXT_LENGTH                     3
+// Entry Flags (Hidden, System, etc)
+#define ENTRY_FLAGS_OFFSET_24                14
+#define ENTRY_FLAGS_OFFSET_32                15
+#define ENTRY_FLAGS_LENGTH                   1
+// First entry record pointer
+#define ENTRY_FIRSTENTRYRECORDPTR_OFFSET_24  15
+#define ENTRY_FIRSTENTRYRECORDPTR_OFFSET_32  16
+#define ENTRY_FIRSTENTRYRECORDPTR_LENGTH_24  3
+#define ENTRY_FIRSTENTRYRECORDPTR_LENGTH_32  4
+// Alternative Record Pointer (currently unused in SIBOIMG)
+#define ENTRY_ALTRECORDPTR_OFFSET_24         18
+#define ENTRY_ALTRECORDPTR_OFFSET_32         20
+#define ENTRY_ALTRECORDPTR_LENGTH_24         3
+#define ENTRY_ALTRECORDPTR_LENGTH_32         4
+/// Properties
+#define ENTRY_PROPERTIES_OFFSET_24           21
+#define ENTRY_PROPERTIES_OFFSET_32           24
+#define ENTRY_PROPERTIES_LENGTH              1
+// Timecode
+#define ENTRY_TIMECODE_OFFSET_24             22
+#define ENTRY_TIMECODE_OFFSET_32             25
+#define ENTRY_TIMECODE_LENGTH                2
+// Datecode (Rolled into timecode in SIBOIMG)
+#define ENTRY_DATECODE_OFFSET_24             24
+#define ENTRY_DATECODE_OFFSET_32             27
+#define ENTRY_DATECODE_LENGTH                2
+// First data record pointer (for a file)
+#define ENTRY_FIRSTDATARECORDPTR_OFFSET_24   26
+#define ENTRY_FIRSTDATARECORDPTR_OFFSET_32   29
+#define ENTRY_FIRSTDATARECORDPTR_LENGTH_24   3
+#define ENTRY_FIRSTDATARECORDPTR_LENGTH_32   4
+// First data record length
+#define ENTRY_FIRSTDATALEN_OFFSET_24         29
+#define ENTRY_FIRSTDATALEN_OFFSET_32         33
 #define ENTRY_FIRSTDATALEN_LENGTH         2
+
 
 #define ENTRY_FLAG_ENTRYISVALID               1 << 0
 #define ENTRY_FLAG_PROPERTIESDATETIMEISVALID  1 << 1
@@ -160,7 +198,7 @@ struct PsiDateTime psidateftime(const struct tm tm) {
     return(datetime);
 }
 
-void getfile(int pos, char path[], char *buffer[], const char localpath[], const time_t unixtime, const long buffer_len) {
+void getfile(int pos, char path[], char *buffer[], const char localpath[], const time_t unixtime, const long buffer_len, const bool is_fefs32) {
     FILE *fp;
     unsigned int cur_data_ptr = 0, cur_data_len = 0;
     unsigned int cur_pos = pos, next_pos = 0, file_len = 0;
@@ -179,10 +217,10 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[], const
         entry_count++;
         printlogf(2, "Entry %d:\n", entry_count);
         if (entry_count == 1) {
-            memcpy(&cur_data_ptr, *buffer + (cur_pos + ENTRY_FIRSTDATARECORDPTR_OFFSET), ENTRY_FIRSTDATARECORDPTR_LENGTH);
-            memcpy(&cur_data_len, *buffer + (cur_pos + ENTRY_FIRSTDATALEN_OFFSET), ENTRY_FIRSTDATALEN_LENGTH);
-            memcpy(&file_flags, *buffer + (cur_pos + ENTRY_FLAGS_OFFSET), ENTRY_FLAGS_LENGTH);
-            memcpy(&next_pos, *buffer + (cur_pos + ENTRY_FIRSTENTRYRECORDPTR_OFFSET), ENTRY_FIRSTENTRYRECORDPTR_LENGTH);
+            memcpy(&cur_data_ptr, *buffer + (cur_pos + (is_fefs32 ? ENTRY_FIRSTDATARECORDPTR_OFFSET_32 : ENTRY_FIRSTDATARECORDPTR_OFFSET_24)), (is_fefs32 ? ENTRY_FIRSTDATARECORDPTR_LENGTH_32 : ENTRY_FIRSTDATARECORDPTR_LENGTH_24));
+            memcpy(&cur_data_len, *buffer + (cur_pos + (is_fefs32 ? ENTRY_FIRSTDATALEN_OFFSET_32 : ENTRY_FIRSTDATALEN_OFFSET_24)), ENTRY_FIRSTDATALEN_LENGTH);
+            memcpy(&file_flags, *buffer + (cur_pos + (is_fefs32 ? ENTRY_FLAGS_OFFSET_32 : ENTRY_FLAGS_OFFSET_24)), ENTRY_FLAGS_LENGTH);
+            memcpy(&next_pos, *buffer + (cur_pos + (is_fefs32 ? ENTRY_FIRSTENTRYRECORDPTR_OFFSET_32 : ENTRY_FIRSTENTRYRECORDPTR_OFFSET_24)), (is_fefs32 ? ENTRY_FIRSTENTRYRECORDPTR_LENGTH_32 : ENTRY_FIRSTENTRYRECORDPTR_LENGTH_24));
         } else {
             memcpy(&cur_data_ptr, *buffer + (cur_pos + FILE_DATARECORDPTR_OFFSET), FILE_DATARECORDPTR_LENGTH);
             memcpy(&cur_data_len, *buffer + (cur_pos + FILE_DATARECORDLEN_OFFSET), FILE_DATARECORDLEN_LENGTH);
@@ -200,14 +238,14 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[], const
         // printf("Done writing.\n");
 
         printlogf(2, "Next entry record: 0x%06x\n", next_pos);
-        if (next_pos > buffer_len && next_pos != NULL_PTR) {
+        if (next_pos > buffer_len && next_pos != (is_fefs32 ? NULL_PTR_32 : NULL_PTR_24)) {
             printf("siboimg: detected pointer out of range (0x%06x)\n", next_pos);
             exit(EXIT_FAILURE);
         }
 
-        if (file_flags & ENTRY_FLAG_NOENTRYRECORD) printlogf(2, "Last entry flag set.\n");
+        if (file_flags & ENTRY_FLAG_NOENTRYRECORD) printlogf(2, "Last entry record flag set.\n");
 
-        if (!((file_flags & ENTRY_FLAG_NOENTRYRECORD) == 0 && next_pos != NULL_PTR)) {
+        if (!((file_flags & ENTRY_FLAG_NOENTRYRECORD) == 0 && next_pos != (is_fefs32 ? NULL_PTR_32 : NULL_PTR_24))) {
             printlogf(2, "End of file.\n");
             break;
         }
@@ -222,7 +260,7 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[], const
     printlogf(1, "Total file size: %d (in %d records)\n", file_len, entry_count);
 }
 
-void walkpath(int pos, char path[], char *buffer[], const char img_name[], const long buffer_len) {
+void walkpath(int pos, char path[], char *buffer[], const char img_name[], const long buffer_len, const bool is_fefs32) {
     char entry_name[9], entry_ext[4], entry_filename[13], newpath[128];
     char entry_flags, entry_properties;
     unsigned int first_entry_ptr = 0, next_entry_ptr = 0;
@@ -236,12 +274,12 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
     // printf("VERBOSITY: %d\n", switches.verbose);
 
     while (true) {
-        memcpy(&entry_flags, *buffer + (pos + ENTRY_FLAGS_OFFSET), ENTRY_FLAGS_LENGTH);
-        memcpy(&entry_properties, *buffer + (pos + ENTRY_PROPERTIES_OFFSET), ENTRY_PROPERTIES_LENGTH);
-        memcpy(entry_name, *buffer + (pos + ENTRY_NAME_OFFSET), ENTRY_NAME_LENGTH);
+        memcpy(&entry_flags, *buffer + (pos + (is_fefs32 ? ENTRY_FLAGS_OFFSET_32 : ENTRY_FLAGS_OFFSET_24)), ENTRY_FLAGS_LENGTH);
+        memcpy(&entry_properties, *buffer + (pos + (is_fefs32 ? ENTRY_PROPERTIES_OFFSET_32 : ENTRY_PROPERTIES_OFFSET_24)), ENTRY_PROPERTIES_LENGTH);
+        memcpy(entry_name, *buffer + (pos + (is_fefs32 ? ENTRY_NAME_OFFSET_32 : ENTRY_NAME_OFFSET_24)), ENTRY_NAME_LENGTH);
         entry_name[8] = 0;
         rtrim(entry_name);
-        memcpy(entry_ext, *buffer + (pos + ENTRY_EXT_OFFSET), ENTRY_EXT_LENGTH);
+        memcpy(entry_ext, *buffer + (pos + (is_fefs32 ? ENTRY_EXT_OFFSET_32 : ENTRY_EXT_OFFSET_24)), ENTRY_EXT_LENGTH);
         entry_ext[3] = 0;
         rtrim(entry_ext);
 
@@ -285,7 +323,15 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
                 if (is_hidden)   printlogf(1, "Hidden flag set.\n");
                 if (is_system)   printlogf(1, "System flag set.\n");
             
-            memcpy(&psidatetime, *buffer + (pos + ENTRY_TIMECODE_OFFSET), ENTRY_TIMECODE_LENGTH + ENTRY_DATECODE_LENGTH);
+            if (is_fefs32) {
+                printlogf(2, "Entry Starts: 0x%08x\n", pos);
+            } else {
+                printlogf(2, "Entry Starts: 0x%06x\n", pos);
+            }
+
+
+
+            memcpy(&psidatetime, *buffer + (pos + (is_fefs32 ? ENTRY_TIMECODE_OFFSET_32 : ENTRY_TIMECODE_OFFSET_24)), ENTRY_TIMECODE_LENGTH + ENTRY_DATECODE_LENGTH);
             tm = psidateptime(psidatetime);
             unixtime = mktime(&tm);
 
@@ -296,10 +342,14 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
                 printf("Has an alternative record.\n");
             }
 
-            memcpy(&first_entry_ptr, *buffer + (pos + ENTRY_FIRSTENTRYRECORDPTR_OFFSET), ENTRY_FIRSTENTRYRECORDPTR_LENGTH);
-            printlogf(2, "First Entry Pointer: 0x%06x\n", first_entry_ptr);
+            memcpy(&first_entry_ptr, *buffer + (pos + (is_fefs32 ? ENTRY_FIRSTENTRYRECORDPTR_OFFSET_32 : ENTRY_FIRSTENTRYRECORDPTR_OFFSET_24)), (is_fefs32 ? ENTRY_FIRSTENTRYRECORDPTR_LENGTH_32 : ENTRY_FIRSTENTRYRECORDPTR_LENGTH_24));
+            if (is_fefs32) {
+                printlogf(2, "First Entry Pointer: 0x%08x\n", first_entry_ptr);
+            } else {
+                printlogf(2, "First Entry Pointer: 0x%06x\n", first_entry_ptr);
+            }
 
-            if(first_entry_ptr > buffer_len && first_entry_ptr != NULL_PTR) {
+            if(first_entry_ptr > buffer_len && first_entry_ptr != (is_fefs32 ? NULL_PTR_32 : NULL_PTR_24)) {
                 printf("%s: detected pointer out of range\n", switches.called_with);
                 exit(EXIT_FAILURE);
             }
@@ -309,7 +359,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
                 strcat(localpath, path);
                 strcat(localpath, entry_filename);
                 printlogf(2, "File to be made: %s\n", localpath);
-                getfile(pos, path, buffer, localpath, unixtime, buffer_len);
+                getfile(pos, path, buffer, localpath, unixtime, buffer_len, is_fefs32);
                 count_files++;
             } else { // it's a directory
                 if (strlen(path)) {
@@ -337,7 +387,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
 #endif
                 }
 
-                walkpath (first_entry_ptr, newpath, buffer, img_name, buffer_len);
+                walkpath (first_entry_ptr, newpath, buffer, img_name, buffer_len, is_fefs32);
                 if (is_readonly) {
 #ifdef _WIN32
                     SetFileAttributesA(localpath, FILE_ATTRIBUTE_READONLY);
@@ -362,20 +412,27 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
         if (is_last_entry) {
             return;
         }
-        memcpy(&pos, *buffer + (pos + ENTRY_NEXTENTRYPTR_OFFSET), ENTRY_NEXTENTRYPTR_LENGTH);
+        memcpy(&pos, *buffer + (pos + ENTRY_NEXTENTRYPTR_OFFSET), (is_fefs32 ? ENTRY_NEXTENTRYPTR_LENGTH_32 : ENTRY_NEXTENTRYPTR_LENGTH_24));
+
+        if (is_fefs32) {
+            printlogf(2, "Next Entry Pointer: 0x%08x\n", pos);
+        } else {
+            printlogf(2, "Next Entry Pointer: 0x%06x\n", pos);
+        }
+
         printlogf(1, "\n");
     }
 }
 
 int main(int argc, const char **argv) {
     FILE *fp;
-    char i;
+    char i, img_flags;
     long file_len;
     char *buffer;
     char img_name[12], volume_id[33];
     unsigned short img_type;
     unsigned int img_flashcount = 0, img_rootstart = 0;
-    bool only_list, ignore_attributes, ignore_modtime;
+    bool only_list, ignore_attributes, ignore_modtime, is_fefs32;
 
     strcpy(switches.called_with, argv[0]);
     // switches.verbose = 0;
@@ -424,9 +481,18 @@ int main(int argc, const char **argv) {
     buffer = (char *)malloc((file_len + 1) * sizeof(char)); // Enough memory for file + \0
     fread(buffer, file_len, 1, fp);
     fclose(fp);
-    
+
+    // Check for 24-bit or 32-bit addressing (FEFS24 or FEFS32)
+    memcpy(&img_flags, buffer + IMAGE_POINTERSIZE_OFFSET, 1);
+    is_fefs32 = (img_flags && 1);
+    if (is_fefs32) {
+        printf("FEFS32 Filesystem (uh oh)\n");
+    } else {
+        printf("FEFS24 Filesystem\n");
+    }
+
     // Fetch ROM Name
-    memcpy(img_name, buffer + IMAGE_NAME_OFFSET, IMAGE_NAME_LENGTH);
+    memcpy(img_name, buffer + (is_fefs32 ? IMAGE_NAME_OFFSET_32 : IMAGE_NAME_OFFSET_24), IMAGE_NAME_LENGTH);
     img_name[11] = 0;
     rtrim(img_name);
     printf("Image name: %s\n", img_name);
@@ -450,11 +516,11 @@ int main(int argc, const char **argv) {
     volume_id[32] = 0;
     printf("Volume ID: %s\n", volume_id);
 
-    memcpy(&img_rootstart, buffer + IMAGE_ROOTPTR_OFFSET, IMAGE_ROOTPTR_LENGTH);
+    memcpy(&img_rootstart, buffer + IMAGE_ROOTPTR_OFFSET, IMAGE_ROOTPTR_LENGTH + (is_fefs32 ? 1 : 0));
     printlogf(2, "Root directory starts at: 0x%06x\n", img_rootstart);
     printf("\n");
 
-    walkpath(img_rootstart, "", &buffer, img_name, file_len);
+    walkpath(img_rootstart, "", &buffer, img_name, file_len, is_fefs32);
 
     free(buffer);
     printf("\nExtracted %d files in %d directories.\n", count_files, count_dirs);
