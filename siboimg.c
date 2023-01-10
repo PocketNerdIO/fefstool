@@ -235,7 +235,7 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[], const
             memcpy(&cur_data_len, *buffer + (cur_pos + (is_fefs32 ? ENTRY_FIRSTDATALEN_OFFSET_32 : ENTRY_FIRSTDATALEN_OFFSET_24)), ENTRY_FIRSTDATALEN_LENGTH);
             memcpy(&file_flags, *buffer + (cur_pos + (is_fefs32 ? ENTRY_FLAGS_OFFSET_32 : ENTRY_FLAGS_OFFSET_24)), ENTRY_FLAGS_LENGTH);
             memcpy(&next_pos, *buffer + (cur_pos + (is_fefs32 ? ENTRY_FIRSTENTRYRECORDPTR_OFFSET_32 : ENTRY_FIRSTENTRYRECORDPTR_OFFSET_24)), (is_fefs32 ? FEFS32_PTR_LEN : FEFS24_PTR_LEN));
-        } else { //TODO! FIX THIS!!!
+        } else {
             memcpy(&cur_data_ptr, *buffer + (cur_pos + (is_fefs32 ? FILE_DATARECORDPTR_OFFSET_32 : FILE_DATARECORDPTR_OFFSET_24)), (is_fefs32 ? FEFS32_PTR_LEN : FEFS24_PTR_LEN));
             memcpy(&cur_data_len, *buffer + (cur_pos + (is_fefs32 ? FILE_DATARECORDLEN_OFFSET_32 : FILE_DATARECORDLEN_OFFSET_24)), FILE_DATARECORDLEN_LENGTH);
             memcpy(&file_flags, *buffer + (cur_pos + FILE_FLAGS_OFFSET), FILE_FLAGS_LENGTH);
@@ -500,7 +500,7 @@ int main(int argc, const char **argv) {
     memcpy(&img_flags, buffer + IMAGE_POINTERSIZE_OFFSET, 1);
     is_fefs32 = (img_flags && 1);
     if (is_fefs32) {
-        printf("FEFS32 Filesystem (uh oh)\n");
+        printf("FEFS32 Filesystem\n");
     } else {
         printf("FEFS24 Filesystem\n");
     }
