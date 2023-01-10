@@ -28,17 +28,18 @@ static const char *const usage[] = {
 
 #define FLASH_TYPE   0xf1a5
 #define IMAGE_ISROM  0xffffffff
-#define NULL_PTR_24  0xffffff
-#define NULL_PTR_32  0xffffffff
 
-#define PTR_LEN_32   4
-#define PTR_LEN_24   3
+#define FEFS24_NULL_PTR  0xffffff
+#define FEFS32_NULL_PTR  0xffffffff
+
+#define FEFS32_PTR_LEN   4
+#define FEFS24_PTR_LEN   3
 
 // IMAGE OFFSETS AND SIZES
 #define IMAGE_POINTERSIZE_OFFSET    10
 
 #define IMAGE_ROOTPTR_OFFSET        11
-#define IMAGE_ROOTPTR_LENGTH        3
+//#define IMAGE_ROOTPTR_LENGTH        3
 
 #define IMAGE_NAME_OFFSET_24        14
 #define IMAGE_NAME_OFFSET_32        15
@@ -53,8 +54,8 @@ static const char *const usage[] = {
 
 // Next Entry Pointer
 #define ENTRY_NEXTENTRYPTR_OFFSET            0
-#define ENTRY_NEXTENTRYPTR_LENGTH_24         3
-#define ENTRY_NEXTENTRYPTR_LENGTH_32         3
+// #define ENTRY_NEXTENTRYPTR_LENGTH_24         3
+// #define ENTRY_NEXTENTRYPTR_LENGTH_32         3
 // Entry Name
 #define ENTRY_NAME_OFFSET_24                 3
 #define ENTRY_NAME_OFFSET_32                 4
@@ -70,13 +71,13 @@ static const char *const usage[] = {
 // First entry record pointer
 #define ENTRY_FIRSTENTRYRECORDPTR_OFFSET_24  15
 #define ENTRY_FIRSTENTRYRECORDPTR_OFFSET_32  16
-#define ENTRY_FIRSTENTRYRECORDPTR_LENGTH_24  3
-#define ENTRY_FIRSTENTRYRECORDPTR_LENGTH_32  4
+//#define ENTRY_FIRSTENTRYRECORDPTR_LENGTH_24  3
+//#define ENTRY_FIRSTENTRYRECORDPTR_LENGTH_32  4
 // Alternative Record Pointer (currently unused in SIBOIMG)
 #define ENTRY_ALTRECORDPTR_OFFSET_24         18
 #define ENTRY_ALTRECORDPTR_OFFSET_32         20
-#define ENTRY_ALTRECORDPTR_LENGTH_24         3
-#define ENTRY_ALTRECORDPTR_LENGTH_32         4
+//#define ENTRY_ALTRECORDPTR_LENGTH_24         3
+//#define ENTRY_ALTRECORDPTR_LENGTH_32         4
 /// Properties
 #define ENTRY_PROPERTIES_OFFSET_24           21
 #define ENTRY_PROPERTIES_OFFSET_32           24
@@ -92,8 +93,8 @@ static const char *const usage[] = {
 // First data record pointer (for a file)
 #define ENTRY_FIRSTDATARECORDPTR_OFFSET_24   26
 #define ENTRY_FIRSTDATARECORDPTR_OFFSET_32   29
-#define ENTRY_FIRSTDATARECORDPTR_LENGTH_24   3
-#define ENTRY_FIRSTDATARECORDPTR_LENGTH_32   4
+//#define ENTRY_FIRSTDATARECORDPTR_LENGTH_24   3
+//#define ENTRY_FIRSTDATARECORDPTR_LENGTH_32   4
 // First data record length
 #define ENTRY_FIRSTDATALEN_OFFSET_24         29
 #define ENTRY_FIRSTDATALEN_OFFSET_32         33
@@ -118,19 +119,32 @@ static const char *const usage[] = {
 
 #define FILE_FLAGS_OFFSET            0
 #define FILE_FLAGS_LENGTH            1
+
 #define FILE_NEXTRECORDPTR_OFFSET    1
-#define FILE_NEXTRECORDPTR_LENGTH    3
-#define FILE_ALTRECORDPTR_OFFSET     4
-#define FILE_ALTRECORDPTR_LENGTH     3
-#define FILE_DATARECORDPTR_OFFSET    7
-#define FILE_DATARECORDPTR_LENGTH    3
-#define FILE_DATARECORDLEN_OFFSET    10
+//#define FILE_NEXTRECORDPTR_LENGTH    3
+
+#define FILE_ALTRECORDPTR_OFFSET_24     4
+#define FILE_ALTRECORDPTR_OFFSET_32     5
+//#define FILE_ALTRECORDPTR_LENGTH     3
+
+#define FILE_DATARECORDPTR_OFFSET_24    7
+#define FILE_DATARECORDPTR_OFFSET_32    9
+//#define FILE_DATARECORDPTR_LENGTH    3
+
+#define FILE_DATARECORDLEN_OFFSET_24    10
+#define FILE_DATARECORDLEN_OFFSET_32    13
 #define FILE_DATARECORDLEN_LENGTH    2
-#define FILE_ENTRYPROPERTIES_OFFSET  12
+
+#define FILE_ENTRYPROPERTIES_OFFSET_24  12
+#define FILE_ENTRYPROPERTIES_OFFSET_32  15
 #define FILE_ENTRYPROPERTIES_LENGTH  1
-#define FILE_TIMECODE_OFFSET         13
+
+#define FILE_TIMECODE_OFFSET_24         13
+#define FILE_TIMECODE_OFFSET_32         16
 #define FILE_TIMECODE_LENGTH         2
-#define FILE_DATECODE_OFFSET         15
+
+#define FILE_DATECODE_OFFSET_24         15
+#define FILE_DATECODE_OFFSET_32         18
 #define FILE_DATECODE_LENGTH         2
 
 struct PsiDateTime {
@@ -217,15 +231,15 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[], const
         entry_count++;
         printlogf(2, "Entry %d:\n", entry_count);
         if (entry_count == 1) {
-            memcpy(&cur_data_ptr, *buffer + (cur_pos + (is_fefs32 ? ENTRY_FIRSTDATARECORDPTR_OFFSET_32 : ENTRY_FIRSTDATARECORDPTR_OFFSET_24)), (is_fefs32 ? ENTRY_FIRSTDATARECORDPTR_LENGTH_32 : ENTRY_FIRSTDATARECORDPTR_LENGTH_24));
+            memcpy(&cur_data_ptr, *buffer + (cur_pos + (is_fefs32 ? ENTRY_FIRSTDATARECORDPTR_OFFSET_32 : ENTRY_FIRSTDATARECORDPTR_OFFSET_24)), (is_fefs32 ? FEFS32_PTR_LEN : FEFS24_PTR_LEN));
             memcpy(&cur_data_len, *buffer + (cur_pos + (is_fefs32 ? ENTRY_FIRSTDATALEN_OFFSET_32 : ENTRY_FIRSTDATALEN_OFFSET_24)), ENTRY_FIRSTDATALEN_LENGTH);
             memcpy(&file_flags, *buffer + (cur_pos + (is_fefs32 ? ENTRY_FLAGS_OFFSET_32 : ENTRY_FLAGS_OFFSET_24)), ENTRY_FLAGS_LENGTH);
-            memcpy(&next_pos, *buffer + (cur_pos + (is_fefs32 ? ENTRY_FIRSTENTRYRECORDPTR_OFFSET_32 : ENTRY_FIRSTENTRYRECORDPTR_OFFSET_24)), (is_fefs32 ? ENTRY_FIRSTENTRYRECORDPTR_LENGTH_32 : ENTRY_FIRSTENTRYRECORDPTR_LENGTH_24));
-        } else {
-            memcpy(&cur_data_ptr, *buffer + (cur_pos + FILE_DATARECORDPTR_OFFSET), FILE_DATARECORDPTR_LENGTH);
-            memcpy(&cur_data_len, *buffer + (cur_pos + FILE_DATARECORDLEN_OFFSET), FILE_DATARECORDLEN_LENGTH);
+            memcpy(&next_pos, *buffer + (cur_pos + (is_fefs32 ? ENTRY_FIRSTENTRYRECORDPTR_OFFSET_32 : ENTRY_FIRSTENTRYRECORDPTR_OFFSET_24)), (is_fefs32 ? FEFS32_PTR_LEN : FEFS24_PTR_LEN));
+        } else { //TODO! FIX THIS!!!
+            memcpy(&cur_data_ptr, *buffer + (cur_pos + (is_fefs32 ? FILE_DATARECORDPTR_OFFSET_32 : FILE_DATARECORDPTR_OFFSET_24)), (is_fefs32 ? FEFS32_PTR_LEN : FEFS24_PTR_LEN));
+            memcpy(&cur_data_len, *buffer + (cur_pos + (is_fefs32 ? FILE_DATARECORDLEN_OFFSET_32 : FILE_DATARECORDLEN_OFFSET_24)), FILE_DATARECORDLEN_LENGTH);
             memcpy(&file_flags, *buffer + (cur_pos + FILE_FLAGS_OFFSET), FILE_FLAGS_LENGTH);
-            memcpy(&next_pos, *buffer + (cur_pos + FILE_NEXTRECORDPTR_OFFSET), FILE_NEXTRECORDPTR_LENGTH);
+            memcpy(&next_pos, *buffer + (cur_pos + FILE_NEXTRECORDPTR_OFFSET), (is_fefs32 ? FEFS32_PTR_LEN : FEFS24_PTR_LEN));
         }
 
         printlogf(2, "Data record: 0x%06x (%d)\n", cur_data_ptr, cur_data_ptr);
@@ -238,14 +252,14 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[], const
         // printf("Done writing.\n");
 
         printlogf(2, "Next entry record: 0x%06x\n", next_pos);
-        if (next_pos > buffer_len && next_pos != (is_fefs32 ? NULL_PTR_32 : NULL_PTR_24)) {
+        if (next_pos > buffer_len && next_pos != (is_fefs32 ? FEFS32_NULL_PTR : FEFS24_NULL_PTR)) {
             printf("siboimg: detected pointer out of range (0x%06x)\n", next_pos);
             exit(EXIT_FAILURE);
         }
 
         if (file_flags & ENTRY_FLAG_NOENTRYRECORD) printlogf(2, "Last entry record flag set.\n");
 
-        if (!((file_flags & ENTRY_FLAG_NOENTRYRECORD) == 0 && next_pos != (is_fefs32 ? NULL_PTR_32 : NULL_PTR_24))) {
+        if (!((file_flags & ENTRY_FLAG_NOENTRYRECORD) == 0 && next_pos != (is_fefs32 ? FEFS32_NULL_PTR : FEFS24_NULL_PTR))) {
             printlogf(2, "End of file.\n");
             break;
         }
@@ -342,14 +356,14 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
                 printf("Has an alternative record.\n");
             }
 
-            memcpy(&first_entry_ptr, *buffer + (pos + (is_fefs32 ? ENTRY_FIRSTENTRYRECORDPTR_OFFSET_32 : ENTRY_FIRSTENTRYRECORDPTR_OFFSET_24)), (is_fefs32 ? ENTRY_FIRSTENTRYRECORDPTR_LENGTH_32 : ENTRY_FIRSTENTRYRECORDPTR_LENGTH_24));
+            memcpy(&first_entry_ptr, *buffer + (pos + (is_fefs32 ? ENTRY_FIRSTENTRYRECORDPTR_OFFSET_32 : ENTRY_FIRSTENTRYRECORDPTR_OFFSET_24)), (is_fefs32 ? FEFS32_PTR_LEN : FEFS24_PTR_LEN));
             if (is_fefs32) {
                 printlogf(2, "First Entry Pointer: 0x%08x\n", first_entry_ptr);
             } else {
                 printlogf(2, "First Entry Pointer: 0x%06x\n", first_entry_ptr);
             }
 
-            if(first_entry_ptr > buffer_len && first_entry_ptr != (is_fefs32 ? NULL_PTR_32 : NULL_PTR_24)) {
+            if(first_entry_ptr > buffer_len && first_entry_ptr != (is_fefs32 ? FEFS32_NULL_PTR : FEFS24_NULL_PTR)) {
                 printf("%s: detected pointer out of range\n", switches.called_with);
                 exit(EXIT_FAILURE);
             }
@@ -412,7 +426,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
         if (is_last_entry) {
             return;
         }
-        memcpy(&pos, *buffer + (pos + ENTRY_NEXTENTRYPTR_OFFSET), (is_fefs32 ? ENTRY_NEXTENTRYPTR_LENGTH_32 : ENTRY_NEXTENTRYPTR_LENGTH_24));
+        memcpy(&pos, *buffer + (pos + ENTRY_NEXTENTRYPTR_OFFSET), (is_fefs32 ? FEFS32_PTR_LEN : FEFS24_PTR_LEN));
 
         if (is_fefs32) {
             printlogf(2, "Next Entry Pointer: 0x%08x\n", pos);
@@ -516,7 +530,7 @@ int main(int argc, const char **argv) {
     volume_id[32] = 0;
     printf("Volume ID: %s\n", volume_id);
 
-    memcpy(&img_rootstart, buffer + IMAGE_ROOTPTR_OFFSET, IMAGE_ROOTPTR_LENGTH + (is_fefs32 ? 1 : 0));
+    memcpy(&img_rootstart, buffer + IMAGE_ROOTPTR_OFFSET, (is_fefs32 ? FEFS32_PTR_LEN : FEFS24_PTR_LEN));
     printlogf(2, "Root directory starts at: 0x%06x\n", img_rootstart);
     printf("\n");
 
