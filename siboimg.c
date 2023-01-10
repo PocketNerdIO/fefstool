@@ -1,3 +1,14 @@
+// TODO: issues with reading Volume ID on FEFS32 (is there a pointer/offset for this?)
+// TODO: Reinstate and migrate more code to sibo.h
+// TODO: Do older Psion-made SSDs *really* have all attributes set on the root folder?
+// TODO: Investigate Psionics claim about image offsets 29-32 (dump Flash SSDs to test with)
+// TODO: Handle filesystem version values at offsets 7-8 (write version) and 9-10 (min read version)
+// TODO: Handle alternative records
+// TODO: Use structs to read values from image files rather than separate variables
+// TODO: Handle volume name records (first byte of volume name is 0x00) (need examples of this!)
+// TODO: Check for out of range pointer (to trap error and avoid segfault)
+// TODO: Add ability to find an FEFS image in a ROM dump
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -45,11 +56,14 @@ static const char *const usage[] = {
 #define IMAGE_NAME_OFFSET_32        15
 #define IMAGE_NAME_LENGTH           11
 
-#define IMAGE_FLASHCOUNT_OFFSET     25 // Different for FEFS32?
-#define IMAGE_FLASHCOUNT_LENGTH     4
+#define IMAGE_FLASHCOUNT_OFFSET_24     25 
+#define IMAGE_FLASHCOUNT_OFFSET_32     26 
+#define IMAGE_FLASHCOUNT_LENGTH        4
 
-#define IMAGE_FLASHIDSTRING_OFFSET  33 // Different for FEFS32?
-#define IMAGE_ROMIDSTRING_OFFSET    29 // Different for FEFS32?
+#define IMAGE_FLASHIDSTRING_OFFSET_24  33
+#define IMAGE_FLASHIDSTRING_OFFSET_32  34
+#define IMAGE_ROMIDSTRING_OFFSET_24    29
+#define IMAGE_ROMIDSTRING_OFFSET_32    30
 
 
 // Next Entry Pointer
@@ -513,13 +527,13 @@ int main(int argc, const char **argv) {
     printf("Length: %ld bytes\n", file_len);
 
     // Fetch Flash Count (or identify as ROM)
-    memcpy(&img_flashcount, buffer + IMAGE_FLASHCOUNT_OFFSET, IMAGE_FLASHCOUNT_LENGTH);
+    memcpy(&img_flashcount, buffer + (is_fefs32 ? IMAGE_FLASHCOUNT_OFFSET_32 : IMAGE_FLASHCOUNT_OFFSET_24), IMAGE_FLASHCOUNT_LENGTH);
     if (img_flashcount == IMAGE_ISROM) {
         printf("ROM image.\n");
-        memcpy(volume_id, buffer + IMAGE_ROMIDSTRING_OFFSET, 32);
+        memcpy(volume_id, buffer + (is_fefs32 ? IMAGE_ROMIDSTRING_OFFSET_32 : IMAGE_ROMIDSTRING_OFFSET_24), 32);
     } else {
         printf("Flashed %d times.\n", img_flashcount);
-        memcpy(volume_id, buffer + IMAGE_FLASHIDSTRING_OFFSET, 32);
+        memcpy(volume_id, buffer + (is_fefs32 ? IMAGE_FLASHIDSTRING_OFFSET_32 : IMAGE_FLASHIDSTRING_OFFSET_24), 32);
     }
     for (i = 0; i <=32; i++) {
         if ((unsigned char) volume_id[i] == 0xFF) {
