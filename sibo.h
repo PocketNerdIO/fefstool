@@ -11,25 +11,15 @@
 #include <utime.h>
 #include <stdarg.h>
 
-// #ifdef _WIN32
-//     #include <windows.h>
-//     // const char *slash = "\\";
-// #else
-//     // Assume it's something POSIX-compliant
-//     #include <stdbool.h>
-//     #include <unistd.h>
-//     #include <sys/stat.h>
-//     // const char *slash = "/";
-// #endif
 
 #ifdef _WIN32
     #include <windows.h>
     const char *slash = "\\";
-#else
+#else // _WIN32
     // Assume it's something POSIX-compliant
     #include <unistd.h>
     const char *slash = "/";
-#endif
+#endif // _WIN32
 
 
 #define FLASH_TYPE   0xf1a5
@@ -151,6 +141,4 @@ struct PsiDateTime {
     uint16_t psi_date;
 };
 
-
-
-#endif
+#endif // SIBO_LIB

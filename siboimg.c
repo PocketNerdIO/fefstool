@@ -7,7 +7,6 @@
 // TODO: Use structs to read values from image files rather than separate variables
 // TODO: Handle volume name records (first byte of volume name is 0x00) (need examples of this!)
 // TODO: Check for out of range pointer (to trap error and avoid segfault)
-// TODO: Add ability to find an FEFS image in a ROM dump
 
 #include "sibo.h"
 #include "statwrap.h"
@@ -261,18 +260,18 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
                 } else {
 #ifdef _WIN32
                     CreateDirectory(localpath, NULL);
-#else
+#else // _WIN32
                     mkdir(localpath, 0777);
-#endif
+#endif // _WIN32
                 }
 
                 walkpath (first_entry_ptr, newpath, buffer, img_name, buffer_len, is_fefs32);
                 if (is_readonly) {
 #ifdef _WIN32
                     SetFileAttributesA(localpath, FILE_ATTRIBUTE_READONLY);
-#else
+#else // _WIN32
                     chmod(localpath, (is_file) ? 0444 : 0555);
-#endif
+#endif // _WIN32
                 }
 #ifdef _WIN32
                 if (is_hidden) {
@@ -281,7 +280,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
                 if (is_system) {
                     SetFileAttributesA(localpath, FILE_ATTRIBUTE_SYSTEM);
                 }
-#endif
+#endif // _WIN32
             }
         } else {
             printf("Invalid entry found, skipping ");
