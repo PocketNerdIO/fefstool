@@ -67,7 +67,7 @@
 // First entry record pointer
 #define ENTRY_FIRSTENTRYRECORDPTR_OFFSET_24  0x0f // 15
 #define ENTRY_FIRSTENTRYRECORDPTR_OFFSET_32  0x10 // 16
-// Alternative Record Pointer (currently unused in SIBOIMG)
+// Alternative Record Pointer (currently unused in FEFSTOOL)
 #define ENTRY_ALTRECORDPTR_OFFSET_24         0x12 // 18
 #define ENTRY_ALTRECORDPTR_OFFSET_32         0x14 // 20
 /// Properties
@@ -78,7 +78,7 @@
 #define ENTRY_TIMECODE_OFFSET_24             0x16 // 22
 #define ENTRY_TIMECODE_OFFSET_32             0x19 // 25
 #define ENTRY_TIMECODE_LENGTH                0x02 // 2
-// Datecode (Rolled into timecode in SIBOIMG)
+// Datecode (Rolled into timecode in FEFSTOOL)
 #define ENTRY_DATECODE_OFFSET_24             0x18 // 24
 #define ENTRY_DATECODE_OFFSET_32             0x1b // 27
 #define ENTRY_DATECODE_LENGTH                0x02 // 2

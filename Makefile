@@ -1,12 +1,12 @@
 CC=gcc
 
-all: siboimg
+all: fefstool
 
-siboimg: argparse/argparse.c siboimg.c
-	$(CC) argparse/argparse.c statwrap.c siboimg.c -o siboimg
+fefstool: argparse/argparse.c fefstool.cpp
+	$(CC) argparse/argparse.c statwrap.cpp fefstool.cpp -o fefstool
 
-mingw32: argparse/argparse.c siboimg.c
-	i686-w64-mingw32-clang argparse/argparse.c statwrap.c siboimg.c -o bin/win32/siboimg.exe
+mingw32: argparse/argparse.c fefstool.cpp
+	i686-w64-mingw32-clang argparse/argparse.c statwrap.cpp siboimg.cpp -o bin/win32/fefstool.exe
 
-mingw64: argparse/argparse.c siboimg.c
-	x86_64-w64-mingw32-clang argparse/argparse.c statwrap.c siboimg.c -o bin/win64/siboimg.exe
+mingw64: argparse/argparse.c fefstool.cpp
+	x86_64-w64-mingw32-clang argparse/argparse.c statwrap.cpp siboimg.cpp -o bin/win64/fefstool.exe

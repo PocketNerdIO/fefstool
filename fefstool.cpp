@@ -14,8 +14,8 @@
 
 #include "argparse/argparse.h"
 static const char *const usage[] = {
-    "siboimg [options] [[--] args]",
-    "siboimg [options]",
+    "fefstool [options] [[--] args]",
+    "fefstool [options]",
     NULL,
 };
 
@@ -117,7 +117,7 @@ void getfile(int pos, char path[], char *buffer[], const char localpath[], const
 
         printlogf(2, "Next entry record: 0x%06x\n", next_pos);
         if (next_pos > buffer_len && next_pos != (is_fefs32 ? FEFS32_NULL_PTR : FEFS24_NULL_PTR)) {
-            printf("siboimg: detected pointer out of range (0x%06x)\n", next_pos);
+            printf("fefstool: detected pointer out of range (0x%06x)\n", next_pos);
             exit(EXIT_FAILURE);
         }
 
@@ -324,7 +324,7 @@ int main(int argc, const char **argv) {
     };
     struct argparse argparse;
     argparse_init(&argparse, options, usage, 0);
-    argparse_describe(&argparse, "\nExtracts files from Psion SIBO Flash and ROM SSD images.", "");
+    argparse_describe(&argparse, "\nThe FEFS (Psion flash filesystem) multitool.", "");
     argc = argparse_parse(&argparse, argc, argv);
 
     // printf("VERBOSITY: %d\n", switches.verbose);
