@@ -1,7 +1,9 @@
 #ifndef LIB_STATWRAP
 #define LIB_STATWRAP
 
-// #include <stdio.h>
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
 
 #ifdef _WIN32
 
@@ -11,7 +13,7 @@ BOOL fileexists(LPCTSTR szPath);
 BOOL direxists(LPCTSTR szPath);
 BOOL fsitemexists(LPCTSTR szPath);
 
-#else
+#else // _WIN32
 
 #include <stdbool.h>
 #include <sys/stat.h>
@@ -20,6 +22,10 @@ bool fileexists(const char *filename);
 bool direxists(const char *filename);
 bool fsitemexists(const char *filename);
 
-#endif
+#endif // _WIN32
 
-#endif
+#ifdef __cplusplus
+} // extern "C"
+#endif // __cplusplus
+
+#endif // LIB_STATWRAP
