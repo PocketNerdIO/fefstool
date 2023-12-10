@@ -1,0 +1,29 @@
+= fefstool
+
+This is the Psion flash filesystem (FEFS) multitool, designed to manage Psion Solid State Disk images. It is currently only able to extract files from FEFS images, but it can handle both FEFS24 and the much less common FEFS32. In future it will also be able to build images for copying/burning to SSDs, or using with MAME.
+
+*THIS IS ALPHA-QUALITY SOFTWARE!* It works for me, but it might not work for you.
+
+== Build
+
+For Linux, BSD, macOS and other POSIX-compliant systems.
+
+[source]
+----
+make
+----
+
+For Windows you will need MinGW and either gcc or clang. Pre-made Win32 and Win64 binaries can be found in _releases_.
+
+== Usage
+
+[source]
+----
+fefstool imagefilename.fefs24
+----
+
+At the moment the switches don't work so all it does it extract the files to a directory. The directory will be named after the image's embedded name.
+
+== Credits
+
+Thanks to Clive DW Feather for his description of FEFS. Thanks to Karl for helping me out in the early days.
