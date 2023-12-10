@@ -1,14 +1,13 @@
 // TODO: issues with reading Volume ID on FEFS32 (is there a pointer/offset for this?)
-// TODO: Reinstate and migrate more code to sibo.h
 // TODO: Do older Psion-made SSDs *really* have all attributes set on the root folder?
 // TODO: Investigate Psionics claim about image offsets 29-32 (dump Flash SSDs to test with)
 // TODO: Handle filesystem version values at offsets 7-8 (write version) and 9-10 (min read version)
 // TODO: Handle alternative records
-// TODO: Use structs to read values from image files rather than separate variables
 // TODO: Handle volume name records (first byte of volume name is 0x00) (need examples of this!)
 // TODO: Check for out of range pointer (to trap error and avoid segfault)
 
 #include "sibo.h"
+#include "misc.h"
 #include "statwrap.h"
 
 
@@ -28,18 +27,6 @@ static struct {
     bool ignore_attributes;
 } switches = {0, 0, false, false, false};
 
-char *rtrim(char *s) {
-	char *p = s + strlen(s) - 1;
-	const char *end = p;
-	while (p >= s && isspace((unsigned char) *p)) {
-		p--;
-	}
-	if (p != end) {
-        p++;
-		*p = '\0';
-    }
-	return s;
-}
 
 int count_dirs = 0, count_files = 0;
 
