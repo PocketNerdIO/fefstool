@@ -3,10 +3,10 @@ CC=gcc
 all: fefstool
 
 fefstool: argparse/argparse.c fefstool.cpp
-	$(CC) argparse/argparse.c misc.c statwrap.c fefstool.cpp -o fefstool
+	$(CC) argparse/argparse.c misc.c statwrap.c sibo_fefs.cpp fefstool.cpp -o fefstool
 
 mingw32: argparse/argparse.c fefstool.cpp
-	i686-w64-mingw32-clang argparse/argparse.c misc.c statwrap.c siboimg.cpp -o bin/win32/fefstool.exe
+	i686-w64-mingw32-clang argparse/argparse.c misc.c statwrap.c sibo_fefs.cpp fefstool.cpp -o bin/win32/fefstool.exe
 
 mingw64: argparse/argparse.c fefstool.cpp
-	x86_64-w64-mingw32-clang argparse/argparse.c misc.c statwrap.c siboimg.cpp -o bin/win64/fefstool.exe
+	x86_64-w64-mingw32-clang argparse/argparse.c misc.c statwrap.c sibo_fefs.cpp fefstool.cpp -o bin/win64/fefstool.exe

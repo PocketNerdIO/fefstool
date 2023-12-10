@@ -9,6 +9,7 @@
 #include "sibo.h"
 #include "misc.h"
 #include "statwrap.h"
+#include "sibo_fefs.h"
 
 
 #include "argparse/argparse.h"
@@ -347,14 +348,24 @@ int main(int argc, const char **argv) {
     fread(buffer, file_len, 1, fp);
     fclose(fp);
 
+    FEFSVolume fefsvol(buffer, file_len);
+
+    if (!fefsvol.isFEFS()) {
+        printf("Class doesn't think it's FEFS!\n");
+        exit(EXIT_FAILURE);
+    }
+
     // Check for 24-bit or 32-bit addressing (FEFS24 or FEFS32)
     memcpy(&img_flags, buffer + IMAGE_POINTERSIZE_OFFSET, 1);
     is_fefs32 = (img_flags && 1);
+    // is_fefs32 = fefsvol.isFEFS32();
+
     if (is_fefs32) {
         printf("FEFS32 Filesystem\n");
     } else {
         printf("FEFS24 Filesystem\n");
     }
+
 
     // Fetch ROM Name
     memcpy(img_name, buffer + (is_fefs32 ? IMAGE_NAME_OFFSET_32 : IMAGE_NAME_OFFSET_24), IMAGE_NAME_LENGTH);
