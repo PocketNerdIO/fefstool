@@ -292,13 +292,13 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
 
 int main(int argc, const char **argv) {
     FILE *fp;
-    char i, img_flags;
+    char i; //, img_flags;
     long file_len;
     char *buffer;
     char img_name[12], volume_id[33];
     unsigned short img_type;
     unsigned int img_flashcount = 0, img_rootstart = 0;
-    bool only_list, ignore_attributes, ignore_modtime, is_fefs32;
+    bool only_list, ignore_attributes, ignore_modtime; //, is_fefs32;
 
     strcpy(switches.called_with, argv[0]);
     // switches.verbose = 0;
@@ -356,11 +356,11 @@ int main(int argc, const char **argv) {
     }
 
     // Check for 24-bit or 32-bit addressing (FEFS24 or FEFS32)
-    memcpy(&img_flags, buffer + IMAGE_POINTERSIZE_OFFSET, 1);
-    is_fefs32 = (img_flags && 1);
+    // memcpy(&img_flags, buffer + IMAGE_POINTERSIZE_OFFSET, 1);
+    // is_fefs32 = (img_flags && 1);
     // is_fefs32 = fefsvol.isFEFS32();
 
-    if (is_fefs32) {
+    if (fefsvol.isFEFS32()) {
         printf("FEFS32 Filesystem\n");
     } else {
         printf("FEFS24 Filesystem\n");
@@ -368,20 +368,20 @@ int main(int argc, const char **argv) {
 
 
     // Fetch ROM Name
-    memcpy(img_name, buffer + (is_fefs32 ? IMAGE_NAME_OFFSET_32 : IMAGE_NAME_OFFSET_24), IMAGE_NAME_LENGTH);
-    img_name[11] = 0;
-    rtrim(img_name);
-    printf("Image name: %s\n", img_name);
+    // memcpy(img_name, buffer + (fefsvol.isFEFS32() ? IMAGE_NAME_OFFSET_32 : IMAGE_NAME_OFFSET_24), IMAGE_NAME_LENGTH);
+    // img_name[11] = 0;
+    // rtrim(img_name);
+    printf("Image name: %s\n", fefsvol.getVolName().c_str());
     printf("Length: %ld bytes\n", file_len);
 
     // Fetch Flash Count (or identify as ROM)
-    memcpy(&img_flashcount, buffer + (is_fefs32 ? IMAGE_FLASHCOUNT_OFFSET_32 : IMAGE_FLASHCOUNT_OFFSET_24), IMAGE_FLASHCOUNT_LENGTH);
+    memcpy(&img_flashcount, buffer + (fefsvol.isFEFS32() ? IMAGE_FLASHCOUNT_OFFSET_32 : IMAGE_FLASHCOUNT_OFFSET_24), IMAGE_FLASHCOUNT_LENGTH);
     if (img_flashcount == IMAGE_ISROM) {
         printf("ROM image.\n");
-        memcpy(volume_id, buffer + (is_fefs32 ? IMAGE_ROMIDSTRING_OFFSET_32 : IMAGE_ROMIDSTRING_OFFSET_24), 32);
+        memcpy(volume_id, buffer + (fefsvol.isFEFS32() ? IMAGE_ROMIDSTRING_OFFSET_32 : IMAGE_ROMIDSTRING_OFFSET_24), 32);
     } else {
         printf("Flashed %d times.\n", img_flashcount);
-        memcpy(volume_id, buffer + (is_fefs32 ? IMAGE_FLASHIDSTRING_OFFSET_32 : IMAGE_FLASHIDSTRING_OFFSET_24), 32);
+        memcpy(volume_id, buffer + (fefsvol.isFEFS32() ? IMAGE_FLASHIDSTRING_OFFSET_32 : IMAGE_FLASHIDSTRING_OFFSET_24), 32);
     }
     for (i = 0; i <=32; i++) {
         if ((unsigned char) volume_id[i] == 0xFF) {
@@ -392,11 +392,11 @@ int main(int argc, const char **argv) {
     volume_id[32] = 0;
     printf("Volume ID: %s\n", volume_id);
 
-    memcpy(&img_rootstart, buffer + IMAGE_ROOTPTR_OFFSET, (is_fefs32 ? FEFS32_PTR_LEN : FEFS24_PTR_LEN));
+    memcpy(&img_rootstart, buffer + IMAGE_ROOTPTR_OFFSET, (fefsvol.isFEFS32() ? FEFS32_PTR_LEN : FEFS24_PTR_LEN));
     printlogf(2, "Root directory starts at: 0x%06x\n", img_rootstart);
     printf("\n");
 
-    walkpath(img_rootstart, "", &buffer, img_name, file_len, is_fefs32);
+    walkpath(img_rootstart, "", &buffer, fefsvol.getVolName().c_str(), file_len, fefsvol.isFEFS32());
 
     free(buffer);
     printf("\nExtracted %d files in %d directories.\n", count_files, count_dirs);

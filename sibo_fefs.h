@@ -2,7 +2,9 @@
 #define _SIBO_FEFS_H
 
 #include <cstdlib>
-// #include "sibo.h"
+#include <cstring>
+#include <string>
+#include "misc.h"
 
 #define FLASH_TYPE   0xf1a5
 #define IMAGE_ISROM  0xffffffff
@@ -123,13 +125,17 @@ class FEFSVolume {
         FEFSVolume(char *offered_buffer, uint size);
 
         bool isFEFS();
-        // bool isFEFS32();
+        bool isFEFS32();
+        std::string getVolName();
 
     private:
         char *_buffer;
         int _size;
         bool _is_FEFS = false;
-        // bool _is_FEFS32 = false;
+        bool _is_FEFS32 = false;
+        char _img_name[12];
+        char _volume_id[33];
+
 };
 
 #endif // _SIBO_FEFS_H
